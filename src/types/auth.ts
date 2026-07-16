@@ -11,6 +11,9 @@ export interface UserPermissions {
   'users.create': boolean;
   'users.edit': boolean;
   'pricing.edit': boolean;
+  'templates.show': boolean;
+  'templates.create': boolean;
+  'templates.edit': boolean;
   [key: string]: boolean;
 }
 

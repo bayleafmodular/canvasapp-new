@@ -71,8 +71,14 @@ function AdminDashboard_Inner() {
 
         {/* Welcome */}
         <div className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-2xl font-bold text-gray-800">Admin Dashboard</h2>
-          <p className="text-gray-500 text-sm mt-1">Full system access — manage users, roles, and platform settings.</p>
+          <h2 className="text-2xl font-bold text-gray-800">
+            {role === 'admin' ? 'Admin Dashboard' : 'Staff Dashboard'}
+          </h2>
+          <p className="text-gray-500 text-sm mt-1">
+            {role === 'admin'
+              ? 'Full system access — manage users, roles, and platform settings.'
+              : 'Staff member access — view stats, manage users, and platform settings.'}
+          </p>
         </div>
 
         {/* Stats */}

@@ -1,6 +1,7 @@
 "use client";
 import PrivateRoute from '@/components/PrivateRoute';
 import React, { useEffect, useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter as useNavigate } from 'next/navigation';
 import Link from 'next/link';
 
@@ -10,13 +11,28 @@ import { Plus, Search, Filter, MoreVertical, Edit2, Eye, EyeOff, Trash2, LayoutT
 import toast from 'react-hot-toast';
 import TemplatePreview from '@/components/TemplatePreview';
 
+const getPermissions = () => {
+  try {
+    return JSON.parse(localStorage.getItem('permissions') || '{}');
+  } catch {
+    return {};
+  }
+};
+
 function ManageTemplates_Inner() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [templateToDelete, setTemplateToDelete] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const navigate = useNavigate();
+
+  const role = localStorage.getItem('role');
+  const permissions = getPermissions();
+  const canCreate = role === 'admin' || permissions['templates.create'];
+  const canEdit = role === 'admin' || permissions['templates.edit'];
 
   useEffect(() => {
     loadTemplates();
@@ -45,14 +61,22 @@ function ManageTemplates_Inner() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this template?')) return;
+  const handleDeleteClick = (template: any) => {
+    setTemplateToDelete(template);
+  };
+
+  const executeDelete = async () => {
+    if (!templateToDelete) return;
+    setIsDeleting(true);
     try {
-      await deleteTemplate(id);
-      setTemplates((prev: any) => prev.filter((t: any) => t.id !== id));
+      await deleteTemplate(templateToDelete.id);
+      setTemplates((prev: any) => prev.filter((t: any) => t.id !== templateToDelete.id));
       toast.success('Template deleted');
+      setTemplateToDelete(null);
     } catch (err: any) {
       toast.error('Failed to delete template');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -80,12 +104,14 @@ function ManageTemplates_Inner() {
             <h2 className="text-2xl font-bold text-gray-800">Manage Templates</h2>
             <p className="text-gray-500 text-sm mt-1">Create, edit, and organize canvas templates.</p>
           </div>
-          <Link
-            href="/admin-dashboard/templates/new"
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
-            <Plus size={16} /> Add Template
-          </Link>
+          {canCreate && (
+            <Link
+              href="/admin-dashboard/templates/new"
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              <Plus size={16} /> Add Template
+            </Link>
+          )}
         </div>
 
         {/* Filters */}
@@ -176,10 +202,13 @@ function ManageTemplates_Inner() {
                       </td>
                       <td className="px-6 py-4">
                         <button
-                          onClick={() => handleToggleStatus(template)}
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-colors ${template.status === 'active'
-                              ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                              : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                          onClick={() => canEdit && handleToggleStatus(template)}
+                          disabled={!canEdit}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${
+                            !canEdit ? 'bg-gray-100 text-gray-400 cursor-not-allowed' :
+                            template.status === 'active'
+                              ? 'bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer'
+                              : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 cursor-pointer'
                             }`}
                         >
                           {template.status === 'active' ? 'Active' : 'Hidden'}
@@ -192,21 +221,33 @@ function ManageTemplates_Inner() {
                         <div className="flex justify-end gap-2">
                           <button
                             onClick={() => handleToggleStatus(template)}
-                            className="p-1.5 text-gray-400 hover:text-indigo-600 transition-colors"
+                            disabled={!canEdit}
+                            className="p-1.5 text-gray-400 hover:text-indigo-600 disabled:opacity-50 disabled:hover:text-gray-400 transition-colors"
                             title={template.status === 'active' ? 'Hide Template' : 'Show Template'}
                           >
                             {template.status === 'active' ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>
-                          <Link
-                            href={`/admin-dashboard/templates/${template.id}/edit`}
-                            className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
-                            title="Edit"
-                          >
-                            <Edit2 size={18} />
-                          </Link>
-                          <button
-                            onClick={() => handleDelete(template.id)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
+                          {canEdit ? (
+                            <Link
+                              href={`/admin-dashboard/templates/${template.id}/edit`}
+                              className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
+                              title="Edit"
+                            >
+                              <Edit2 size={18} />
+                            </Link>
+                          ) : (
+                            <button
+                              disabled
+                              className="p-1.5 text-gray-300 cursor-not-allowed"
+                              title="Edit (Requires Permission)"
+                            >
+                              <Edit2 size={18} />
+                            </button>
+                          )}
+                           <button
+                            onClick={() => handleDeleteClick(template)}
+                            disabled={!canEdit}
+                            className="p-1.5 text-gray-400 hover:text-red-600 disabled:opacity-50 disabled:hover:text-gray-400 transition-colors"
                             title="Delete"
                           >
                             <Trash2 size={18} />
@@ -221,6 +262,52 @@ function ManageTemplates_Inner() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {templateToDelete && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl border border-gray-100 max-w-md w-full shadow-2xl overflow-hidden p-6 animate-in zoom-in-95 duration-200">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-600 shrink-0">
+                <Trash2 size={20} />
+              </div>
+              <div className="flex-1 space-y-1">
+                <h3 className="text-lg font-bold text-gray-900">Delete Template</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  Are you sure you want to delete <span className="font-semibold text-gray-800">"{templateToDelete.name}"</span>? This action is permanent and cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => setTemplateToDelete(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-750 font-semibold text-sm rounded-lg transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={executeDelete}
+                disabled={isDeleting}
+                className="px-5 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-500 text-white font-bold text-sm rounded-lg transition-all shadow-md shadow-red-100 flex items-center gap-2"
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Delete Template</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </Layout>
   );
 }
@@ -228,7 +315,7 @@ function ManageTemplates_Inner() {
 
 export default function ManageTemplates() {
   return (
-    <PrivateRoute allowedRoles={['admin', 'staff']}>
+    <PrivateRoute allowedRoles={['admin', 'staff']} requiredPermission="templates.show">
       <ManageTemplates_Inner />
     </PrivateRoute>
   );

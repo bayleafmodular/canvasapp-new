@@ -1,4 +1,4 @@
-import { ShapeType }  from '@/types';
+import { ShapeType } from '@/types';
 
 export const PRICE_FIELD_DEFS = [
   { key: "wallPerMeter", label: "Wall", unit: "per mm" },

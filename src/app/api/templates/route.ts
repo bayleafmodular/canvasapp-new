@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { authenticateRequest, checkRole, AuthError } from '@/middleware/auth';
+import { authenticateRequest, checkRole, checkPermission, AuthError } from '@/middleware/auth';
 import { TemplateService, TemplateError } from '@/services/templates/template.service';
 import { createTemplateSchema } from '@/validators/templates/template.validator';
 
@@ -21,6 +21,7 @@ export async function POST(request: Request) {
   try {
     const user = await authenticateRequest(request);
     checkRole(user, 'admin', 'staff');
+    checkPermission(user, 'templates.create');
 
     const body = await request.json();
     const validated = createTemplateSchema.safeParse(body);

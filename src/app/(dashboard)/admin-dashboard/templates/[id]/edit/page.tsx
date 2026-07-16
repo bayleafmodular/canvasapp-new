@@ -270,7 +270,7 @@ function TemplateEditor_Inner() {
 
 export default function TemplateEditor() {
   return (
-    <PrivateRoute allowedRoles={['admin', 'staff']}>
+    <PrivateRoute allowedRoles={['admin', 'staff']} requiredPermission="templates.edit">
       <TemplateEditor_Inner />
     </PrivateRoute>
   );

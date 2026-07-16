@@ -14,6 +14,9 @@ const PERMISSIONS = [
   'users.create',
   'users.edit',
   'pricing.edit',
+  'templates.show',
+  'templates.create',
+  'templates.edit',
 ];
 
 export const adminPermissions = PERMISSIONS.reduce<Record<string, boolean>>((acc, permission) => {

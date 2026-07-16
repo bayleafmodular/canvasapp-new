@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { authenticateRequest, checkRole, AuthError } from '@/middleware/auth';
+import { authenticateRequest, checkRole, checkPermission, AuthError } from '@/middleware/auth';
 import { TemplateService, TemplateError } from '@/services/templates/template.service';
 import { updateTemplateSchema } from '@/validators/templates/template.validator';
 import fs from 'fs';
@@ -40,6 +40,7 @@ export async function PATCH(
   try {
     const user = await authenticateRequest(request);
     checkRole(user, 'admin', 'staff');
+    checkPermission(user, 'templates.edit');
 
     const resolvedParams = await params;
     const body = await request.json();
@@ -71,6 +72,7 @@ export async function DELETE(
   try {
     const user = await authenticateRequest(request);
     checkRole(user, 'admin', 'staff');
+    checkPermission(user, 'templates.edit');
 
     const resolvedParams = await params;
     const result = await TemplateService.deleteTemplate(resolvedParams.id);

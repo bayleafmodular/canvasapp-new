@@ -27,29 +27,45 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
     
     setIsGeneratingPDF(true);
     
-    const options = {
-      margin: 10,
-      filename: `ORD-${order.id}-spec-sheet.pdf`,
-      image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
-    };
-
     try {
-      const html2pdf = (await import('html2pdf.js')).default;
-      html2pdf()
-        .from(element)
-        .set(options)
-        .save()
-        .then(() => {
-          setIsGeneratingPDF(false);
-        })
-        .catch((err) => {
-          console.error("PDF Generation failed:", err);
-          setIsGeneratingPDF(false);
-        });
+      const html2canvas = (await import('html2canvas-pro')).default;
+      const { jsPDF } = await import('jspdf');
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      // A4 dimensions: 210mm x 297mm
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`ORD-${order.id}-spec-sheet.pdf`);
+      setIsGeneratingPDF(false);
     } catch (err) {
-      console.error("Failed to load html2pdf.js dynamically:", err);
+      console.error("PDF Generation failed:", err);
       setIsGeneratingPDF(false);
     }
   };

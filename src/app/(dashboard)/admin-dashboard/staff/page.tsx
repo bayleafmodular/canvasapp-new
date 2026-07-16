@@ -32,6 +32,14 @@ const permissionGroups = [
     ],
   },
   {
+    label: 'Templates',
+    permissions: [
+      ['templates.show', 'Show'],
+      ['templates.create', 'Create'],
+      ['templates.edit', 'Edit'],
+    ],
+  },
+  {
     label: 'Pricing',
     permissions: [
       ['pricing.edit', 'Edit'],
@@ -77,7 +85,7 @@ function PermissionGrid({ permissions, onChange, disabled }: { permissions: any;
                   checked={Boolean(permissions[key])}
                   disabled={disabled}
                   onChange={(event) => onChange(key, event.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                 />
               </label>
             ))}
