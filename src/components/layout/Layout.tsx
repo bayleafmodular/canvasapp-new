@@ -80,7 +80,7 @@ export default function Layout({ children, fullScreen = false }: { children: Rea
           user={user}
           onMenuToggle={() => setSidebarOpen((v) => !v)}
         />
-        <main className={`relative z-0 flex-1 min-h-0 ${fullScreen ? 'p-0 overflow-hidden' : 'p-6 overflow-auto'}`}>
+        <main className={`relative flex-1 min-h-0 ${fullScreen ? 'p-0 overflow-hidden' : 'p-6 overflow-auto'}`}>
           {children}
         </main>
         {!fullScreen && <Footer />}

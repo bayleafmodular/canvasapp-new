@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Layout from '@/components/layout/Layout';
 import { createAdminUser, getAdminUsers, updateUserRole, deleteUser } from '@/services/api';
-import { Trash2, AlertTriangle, Search } from 'lucide-react';
+import { Trash2, Search } from 'lucide-react';
+import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 
 const roleBadge: Record<string, string> = {
   admin: 'bg-red-100 text-red-600',
@@ -31,37 +32,6 @@ const getPermissions = () => {
   }
 };
 
-function DeleteModal({ user, onConfirm, onCancel, deleting }: { user: any; onConfirm: () => void; onCancel: () => void; deleting: boolean }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
-          <AlertTriangle size={22} className="text-red-500" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-800 text-center">Delete User</h3>
-        <p className="text-sm text-gray-500 text-center mt-2">
-          Are you sure you want to delete <span className="font-medium text-gray-700">{user.name}</span>? This action cannot be undone.
-        </p>
-        <div className="flex gap-3 mt-6">
-          <button
-            onClick={onCancel}
-            disabled={deleting}
-            className="flex-1 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={deleting}
-            className="flex-1 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            {deleting ? 'Deleting...' : 'Delete'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function ManageUsers_Inner() {
   const [users, setUsers] = useState<any[]>([]);
@@ -139,14 +109,14 @@ function ManageUsers_Inner() {
 
   return (
     <Layout>
-      {confirmUser && (
-        <DeleteModal
-          user={confirmUser}
-          onConfirm={handleDelete}
-          onCancel={() => setConfirmUser(null)}
-          deleting={deleting}
-        />
-      )}
+      <DeleteConfirmModal
+        isOpen={!!confirmUser}
+        title="Delete User"
+        itemName={confirmUser?.name || ''}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmUser(null)}
+        isDeleting={deleting}
+      />
       <div className="space-y-6">
 
         {/* Header */}

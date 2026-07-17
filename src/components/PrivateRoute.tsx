@@ -17,15 +17,35 @@ const getPermissions = (): Record<string, boolean> => {
   }
 };
 
+const checkAuthSynchronously = (allowedRoles?: string[], requiredPermission?: string) => {
+  if (typeof window === 'undefined' || !(window as any).__is_hydrated) return false;
+  
+  const token = localStorage.getItem('token');
+  const role = localStorage.getItem('role');
+  const permissions = getPermissions();
+
+  if (!token) return false;
+  if (allowedRoles && (!role || !allowedRoles.includes(role))) return false;
+  if (role !== 'admin' && requiredPermission && !permissions[requiredPermission]) return false;
+  
+  return true;
+};
+
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ 
   children, 
   allowedRoles, 
   requiredPermission 
 }) => {
   const router = useRouter();
-  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(() => 
+    checkAuthSynchronously(allowedRoles, requiredPermission)
+  );
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__is_hydrated = true;
+    }
+
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role');
     const permissions = getPermissions();

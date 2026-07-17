@@ -41,13 +41,13 @@ export default function Sidebar({ role, permissions = {}, isOpen, onClose }: { r
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-[48] lg:hidden"
           onClick={onClose}
         />
       )}
 
       <aside className={`
-        fixed top-0 left-0 h-full w-64 bg-gray-900 text-white z-30 flex flex-col
+        fixed top-0 left-0 h-full w-64 bg-gray-900 text-white z-[50] flex flex-col
         transform transition-transform duration-300
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:static lg:z-auto

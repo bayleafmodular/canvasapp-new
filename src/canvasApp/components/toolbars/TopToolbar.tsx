@@ -4,6 +4,7 @@ import { useCadStore }  from '@/store/useCadStore';
 import { Undo2, Redo2, Grid, Magnet, Ruler, AlignEndHorizontal, Upload, Image, FileJson, FileEdit, CloudUpload, CloudDownload, ChevronDown, Save, FolderOpen, Trash2, X, FilePlus, Calculator } from "lucide-react";
 import { cn, downloadFile }  from '@/lib/utils';
 import { createDrawing, deleteDrawing, getDrawing, getDrawings, getPricingSettings, createOrder, updateDrawing }  from '@/services/api';
+import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import Drawing from "dxf-writer";
 import { ShapeType }  from '@/types';
 import { calculateDrawingPrice }  from '@/utils/pricing';
@@ -37,6 +38,7 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
   const [browserProjects, setBrowserProjects] = useState<any[]>([]);
   const [browserLoading, setBrowserLoading] = useState(false);
   const [priceModalOpen, setPriceModalOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<any | null>(null);
   const [priceLoading, setPriceLoading] = useState(false);
   const [priceResult, setPriceResult] = useState<any>(null);
 
@@ -316,17 +318,17 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
       setBrowserLoading(false);
     }
   };
-  const handleDeleteBrowser = async (id: any) => {
-    if (confirm("Are you sure you want to delete this drawing?")) {
-      setBrowserLoading(true);
-      try {
-        await deleteDrawing(id);
-        setBrowserProjects((projects) => projects.filter((p) => p.id !== id));
-      } catch (err: any) {
-        alert(err.response?.data?.message || "Failed to delete drawing.");
-      } finally {
-        setBrowserLoading(false);
-      }
+  const executeDeleteBrowser = async () => {
+    if (!projectToDelete) return;
+    setBrowserLoading(true);
+    try {
+      await deleteDrawing(projectToDelete.id);
+      setBrowserProjects((projects) => projects.filter((p) => p.id !== projectToDelete.id));
+      setProjectToDelete(null);
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to delete drawing.");
+    } finally {
+      setBrowserLoading(false);
     }
   };
   const ToggleBtn = ({ active, onClick, icon: Icon, label }: any) => <button
@@ -579,7 +581,10 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
                   Load
                 </button>
                 <button
-                  onClick={() => handleDeleteBrowser(proj.id)}
+                  onClick={() => {
+                    setProjectToDelete(proj);
+                    setBrowserModalOpen(null);
+                  }}
                   disabled={browserLoading}
                   className="text-[#ef4444] hover:bg-[#ef4444] hover:text-white p-1.5 rounded transition-colors"
                   title="Delete"
@@ -733,6 +738,14 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
         )}
       </div>
     </div>}
+    <DeleteConfirmModal
+      isOpen={!!projectToDelete}
+      title="Delete Drawing"
+      itemName={projectToDelete?.name || ''}
+      onConfirm={executeDeleteBrowser}
+      onCancel={() => setProjectToDelete(null)}
+      isDeleting={browserLoading}
+    />
   </>;
 }
 export {

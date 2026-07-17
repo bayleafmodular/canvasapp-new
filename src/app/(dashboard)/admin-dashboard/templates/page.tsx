@@ -10,6 +10,7 @@ import { getTemplates, deleteTemplate, updateTemplate } from '@/services/templat
 import { Plus, Search, Filter, MoreVertical, Edit2, Eye, EyeOff, Trash2, LayoutTemplate } from 'lucide-react';
 import toast from 'react-hot-toast';
 import TemplatePreview from '@/components/TemplatePreview';
+import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 
 const getPermissions = () => {
   try {
@@ -263,51 +264,14 @@ function ManageTemplates_Inner() {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {templateToDelete && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl border border-gray-100 max-w-md w-full shadow-2xl overflow-hidden p-6 animate-in zoom-in-95 duration-200">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-600 shrink-0">
-                <Trash2 size={20} />
-              </div>
-              <div className="flex-1 space-y-1">
-                <h3 className="text-lg font-bold text-gray-900">Delete Template</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">
-                  Are you sure you want to delete <span className="font-semibold text-gray-800">"{templateToDelete.name}"</span>? This action is permanent and cannot be undone.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                type="button"
-                onClick={() => setTemplateToDelete(null)}
-                disabled={isDeleting}
-                className="px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-750 font-semibold text-sm rounded-lg transition-all disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={executeDelete}
-                disabled={isDeleting}
-                className="px-5 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-500 text-white font-bold text-sm rounded-lg transition-all shadow-md shadow-red-100 flex items-center gap-2"
-              >
-                {isDeleting ? (
-                  <>
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Deleting...</span>
-                  </>
-                ) : (
-                  <span>Delete Template</span>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      <DeleteConfirmModal
+        isOpen={!!templateToDelete}
+        title="Delete Template"
+        itemName={templateToDelete?.name || ''}
+        onConfirm={executeDelete}
+        onCancel={() => setTemplateToDelete(null)}
+        isDeleting={isDeleting}
+      />
     </Layout>
   );
 }

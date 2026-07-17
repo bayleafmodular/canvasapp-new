@@ -45,7 +45,7 @@ export default function Header({ user, onMenuToggle }: { user: any; onMenuToggle
   };
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-10">
+    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-[45]">
       {/* Left: hamburger + title */}
       <div className="flex items-center gap-3">
         <button

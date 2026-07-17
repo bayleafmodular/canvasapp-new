@@ -1,4 +1,4 @@
-import { ShapeType }  from '@/types';
+import { ShapeType } from '@/types';
 import { v4 as uuidv4 } from "uuid";
 
 export const defaultTemplates = [
@@ -16,25 +16,25 @@ export const defaultTemplates = [
       { id: uuidv4(), type: ShapeType.WALL, x: 0, y: 0, points: [10000, 0, 10000, 8000], layerId: "layer-walls" },
       { id: uuidv4(), type: ShapeType.WALL, x: 0, y: 0, points: [10000, 8000, 0, 8000], layerId: "layer-walls" },
       { id: uuidv4(), type: ShapeType.WALL, x: 0, y: 0, points: [0, 8000, 0, 0], layerId: "layer-walls" },
-      
+
       // Internal Wall 1: Corridor (Horizontal)
       { id: uuidv4(), type: ShapeType.WALL, x: 0, y: 0, points: [0, 3000, 7000, 3000], layerId: "layer-walls" },
-      
+
       // Internal Wall 2: Manager Cabin (Vertical)
       { id: uuidv4(), type: ShapeType.WALL, x: 0, y: 0, points: [7000, 0, 7000, 3000], layerId: "layer-walls" },
-      
+
       // Internal Wall 3: Meeting Room (Vertical)
       { id: uuidv4(), type: ShapeType.WALL, x: 0, y: 0, points: [4000, 0, 4000, 3000], layerId: "layer-walls" },
-      
+
       // Internal Wall 4: Restroom/Pantry (Vertical)
       { id: uuidv4(), type: ShapeType.WALL, x: 0, y: 0, points: [7000, 3000, 7000, 8000], layerId: "layer-walls" },
 
       // Meeting Room Table (Rectangle)
       { id: uuidv4(), type: ShapeType.RECTANGLE, x: 1000, y: 1000, width: 2000, height: 1000, layerId: "layer-furniture" },
-      
+
       // Manager Desk (Rectangle)
       { id: uuidv4(), type: ShapeType.RECTANGLE, x: 7500, y: 1000, width: 1500, height: 800, layerId: "layer-furniture" },
-      
+
       // Open Workspace Desks
       { id: uuidv4(), type: ShapeType.RECTANGLE, x: 1000, y: 4000, width: 1200, height: 800, layerId: "layer-furniture" },
       { id: uuidv4(), type: ShapeType.RECTANGLE, x: 2500, y: 4000, width: 1200, height: 800, layerId: "layer-furniture" },

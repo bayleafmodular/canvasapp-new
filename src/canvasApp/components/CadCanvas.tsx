@@ -1,9 +1,9 @@
 "use client";
 import React, { useRef, useState, useEffect } from "react";
 import { Stage, Layer, Line, Rect, Circle, Arc, Text, Transformer, Group } from "react-konva";
-import { useCadStore }  from '@/store/useCadStore';
-import { Tool, ShapeType }  from '@/types';
-import { snapToGrid, getDistance, getAngle, getOrthoPoint, SNAP_THRESHOLD, formatMeasurement }  from '@/utils/math';
+import { useCadStore } from '@/store/useCadStore';
+import { Tool, ShapeType } from '@/types';
+import { snapToGrid, getDistance, getAngle, getOrthoPoint, SNAP_THRESHOLD, formatMeasurement } from '@/utils/math';
 const GRID_SIZE = 50;
 function CadCanvas() {
   const containerRef = useRef<any>(null);
@@ -469,137 +469,137 @@ function CadCanvas() {
     };
     const previewColor = activeColor;
     return <Layer>
-        {activeTool === Tool.LINE && <Line
-      points={linePts}
-      stroke={isStraight(linePts) ? "#22c55e" : previewColor}
-      strokeWidth={2 / stageScale}
-    />}
-        {activeTool === Tool.WALL && <Group>
-          <Line
-            points={linePts}
-            stroke={isStraight(linePts) ? "#22c55e" : activeColor === "#FFFFFF" ? "#9ca3af" : activeColor}
-            strokeWidth={12 / stageScale}
-            opacity={0.4}
-          />
-          {(() => {
-            const dx = currentPos.x - p1.x;
-            const dy = currentPos.y - p1.y;
-            const len = Math.sqrt(dx * dx + dy * dy);
-            if (len <= 0) return null;
-            const nx = -dy / len;
-            const ny = dx / len;
-            const offset = 6 / stageScale;
-            return <React.Fragment>
-                <Line points={[p1.x + nx * offset, p1.y + ny * offset, currentPos.x + nx * offset, currentPos.y + ny * offset]} stroke={isStraight(linePts) ? "#22c55e" : "#e5e7eb"} strokeWidth={1.5 / stageScale} />
-                <Line points={[p1.x - nx * offset, p1.y - ny * offset, currentPos.x - nx * offset, currentPos.y - ny * offset]} stroke={isStraight(linePts) ? "#22c55e" : "#e5e7eb"} strokeWidth={1.5 / stageScale} />
-              </React.Fragment>;
-          })()}
-        </Group>}
-        {activeTool === Tool.BEAM && <Line
-      points={linePts}
-      stroke={isStraight(linePts) ? "#22c55e" : activeColor === "#FFFFFF" ? "#f59e0b" : activeColor}
-      strokeWidth={6 / stageScale}
-      dash={[10 / stageScale, 5 / stageScale]}
-    />}
-        {activeTool === Tool.LINTEL && <Group>
-          <Line
-            points={linePts}
-            stroke={isStraight(linePts) ? "#22c55e" : activeColor === "#FFFFFF" ? "#06b6d4" : activeColor}
-            strokeWidth={6 / stageScale}
-          />
-          {(() => {
-            const dx = currentPos.x - p1.x;
-            const dy = currentPos.y - p1.y;
-            const len = Math.sqrt(dx * dx + dy * dy);
-            if (len <= 0) return null;
-            const nx = -dy / len;
-            const ny = dx / len;
-            const capLen = 5 / stageScale;
-            const stroke = isStraight(linePts) ? "#22c55e" : activeColor === "#FFFFFF" ? "#06b6d4" : activeColor;
-            return <React.Fragment>
-                <Line points={[p1.x + nx * capLen, p1.y + ny * capLen, p1.x - nx * capLen, p1.y - ny * capLen]} stroke={stroke} strokeWidth={3 / stageScale} />
-                <Line points={[currentPos.x + nx * capLen, currentPos.y + ny * capLen, currentPos.x - nx * capLen, currentPos.y - ny * capLen]} stroke={stroke} strokeWidth={3 / stageScale} />
-              </React.Fragment>;
-          })()}
-        </Group>}
-        {activeTool === Tool.POLYLINE && <Line
-      points={[...points.flatMap((p: any) => [p.x, p.y]), currentPos.x, currentPos.y]}
-      stroke={previewColor}
-      strokeWidth={2 / stageScale}
-    />}
-        {activeTool === Tool.FREE_DRAW && <Line
-      points={points.flatMap((p: any) => [p.x, p.y])}
-      stroke={
-        /* activeTool === Tool.ERASER ? '#ffffff' : */
-        previewColor
-      }
-      strokeWidth={
-        /* activeTool === Tool.ERASER ? 20 : */
-        2 / stageScale
-      }
-      tension={0.5}
-      lineCap="round"
-      lineJoin="round"
-    />}
-        {activeTool === Tool.RECTANGLE && <Rect
-      x={Math.min(p1.x, currentPos.x)}
-      y={Math.min(p1.y, currentPos.y)}
-      width={Math.abs(currentPos.x - p1.x)}
-      height={Math.abs(currentPos.y - p1.y)}
-      stroke={previewColor}
-      strokeWidth={2 / stageScale}
-    />}
-        {activeTool === Tool.CIRCLE && <Circle
-      x={p1.x}
-      y={p1.y}
-      radius={getDistance(p1, currentPos)}
-      stroke={previewColor}
-      strokeWidth={2 / stageScale}
-    />}
-        {activeTool === Tool.ARC && points.length === 1 && <Line
-      points={[p1.x, p1.y, currentPos.x, currentPos.y]}
-      stroke={previewColor}
-      strokeWidth={1 / stageScale}
-      dash={[4 / stageScale, 4 / stageScale]}
-    />}
-        {activeTool === Tool.ARC && points.length === 2 && <Arc
-      x={p1.x}
-      y={p1.y}
-      innerRadius={getDistance(p1, points[1])}
-      outerRadius={getDistance(p1, points[1])}
-      rotation={getAngle(p1, points[1])}
-      angle={(getAngle(p1, currentPos) - getAngle(p1, points[1]) + 360) % 360}
-      stroke={previewColor}
-      strokeWidth={2 / stageScale}
-    />}
+      {activeTool === Tool.LINE && <Line
+        points={linePts}
+        stroke={isStraight(linePts) ? "#22c55e" : previewColor}
+        strokeWidth={2 / stageScale}
+      />}
+      {activeTool === Tool.WALL && <Group>
+        <Line
+          points={linePts}
+          stroke={isStraight(linePts) ? "#22c55e" : activeColor === "#FFFFFF" ? "#9ca3af" : activeColor}
+          strokeWidth={12 / stageScale}
+          opacity={0.4}
+        />
+        {(() => {
+          const dx = currentPos.x - p1.x;
+          const dy = currentPos.y - p1.y;
+          const len = Math.sqrt(dx * dx + dy * dy);
+          if (len <= 0) return null;
+          const nx = -dy / len;
+          const ny = dx / len;
+          const offset = 6 / stageScale;
+          return <React.Fragment>
+            <Line points={[p1.x + nx * offset, p1.y + ny * offset, currentPos.x + nx * offset, currentPos.y + ny * offset]} stroke={isStraight(linePts) ? "#22c55e" : "#e5e7eb"} strokeWidth={1.5 / stageScale} />
+            <Line points={[p1.x - nx * offset, p1.y - ny * offset, currentPos.x - nx * offset, currentPos.y - ny * offset]} stroke={isStraight(linePts) ? "#22c55e" : "#e5e7eb"} strokeWidth={1.5 / stageScale} />
+          </React.Fragment>;
+        })()}
+      </Group>}
+      {activeTool === Tool.BEAM && <Line
+        points={linePts}
+        stroke={isStraight(linePts) ? "#22c55e" : activeColor === "#FFFFFF" ? "#f59e0b" : activeColor}
+        strokeWidth={6 / stageScale}
+        dash={[10 / stageScale, 5 / stageScale]}
+      />}
+      {activeTool === Tool.LINTEL && <Group>
+        <Line
+          points={linePts}
+          stroke={isStraight(linePts) ? "#22c55e" : activeColor === "#FFFFFF" ? "#06b6d4" : activeColor}
+          strokeWidth={6 / stageScale}
+        />
+        {(() => {
+          const dx = currentPos.x - p1.x;
+          const dy = currentPos.y - p1.y;
+          const len = Math.sqrt(dx * dx + dy * dy);
+          if (len <= 0) return null;
+          const nx = -dy / len;
+          const ny = dx / len;
+          const capLen = 5 / stageScale;
+          const stroke = isStraight(linePts) ? "#22c55e" : activeColor === "#FFFFFF" ? "#06b6d4" : activeColor;
+          return <React.Fragment>
+            <Line points={[p1.x + nx * capLen, p1.y + ny * capLen, p1.x - nx * capLen, p1.y - ny * capLen]} stroke={stroke} strokeWidth={3 / stageScale} />
+            <Line points={[currentPos.x + nx * capLen, currentPos.y + ny * capLen, currentPos.x - nx * capLen, currentPos.y - ny * capLen]} stroke={stroke} strokeWidth={3 / stageScale} />
+          </React.Fragment>;
+        })()}
+      </Group>}
+      {activeTool === Tool.POLYLINE && <Line
+        points={[...points.flatMap((p: any) => [p.x, p.y]), currentPos.x, currentPos.y]}
+        stroke={previewColor}
+        strokeWidth={2 / stageScale}
+      />}
+      {activeTool === Tool.FREE_DRAW && <Line
+        points={points.flatMap((p: any) => [p.x, p.y])}
+        stroke={
+          /* activeTool === Tool.ERASER ? '#ffffff' : */
+          previewColor
+        }
+        strokeWidth={
+          /* activeTool === Tool.ERASER ? 20 : */
+          2 / stageScale
+        }
+        tension={0.5}
+        lineCap="round"
+        lineJoin="round"
+      />}
+      {activeTool === Tool.RECTANGLE && <Rect
+        x={Math.min(p1.x, currentPos.x)}
+        y={Math.min(p1.y, currentPos.y)}
+        width={Math.abs(currentPos.x - p1.x)}
+        height={Math.abs(currentPos.y - p1.y)}
+        stroke={previewColor}
+        strokeWidth={2 / stageScale}
+      />}
+      {activeTool === Tool.CIRCLE && <Circle
+        x={p1.x}
+        y={p1.y}
+        radius={getDistance(p1, currentPos)}
+        stroke={previewColor}
+        strokeWidth={2 / stageScale}
+      />}
+      {activeTool === Tool.ARC && points.length === 1 && <Line
+        points={[p1.x, p1.y, currentPos.x, currentPos.y]}
+        stroke={previewColor}
+        strokeWidth={1 / stageScale}
+        dash={[4 / stageScale, 4 / stageScale]}
+      />}
+      {activeTool === Tool.ARC && points.length === 2 && <Arc
+        x={p1.x}
+        y={p1.y}
+        innerRadius={getDistance(p1, points[1])}
+        outerRadius={getDistance(p1, points[1])}
+        rotation={getAngle(p1, points[1])}
+        angle={(getAngle(p1, currentPos) - getAngle(p1, points[1]) + 360) % 360}
+        stroke={previewColor}
+        strokeWidth={2 / stageScale}
+      />}
 
-        {
-      /* Live Measurement Overlay */
-    }
-        {showMeasurements && (activeTool === Tool.LINE || activeTool === Tool.POLYLINE) && <Text
-      x={(points[points.length - 1].x + currentPos.x) / 2 + 10 / stageScale}
-      y={(points[points.length - 1].y + currentPos.y) / 2 - 20 / stageScale}
-      text={formatMeasurement(getDistance(points[points.length - 1], currentPos))}
-      fill={previewColor}
-      fontSize={14 / stageScale}
-      fontFamily="monospace"
-    />}
-      </Layer>;
+      {
+        /* Live Measurement Overlay */
+      }
+      {showMeasurements && (activeTool === Tool.LINE || activeTool === Tool.POLYLINE) && <Text
+        x={(points[points.length - 1].x + currentPos.x) / 2 + 10 / stageScale}
+        y={(points[points.length - 1].y + currentPos.y) / 2 - 20 / stageScale}
+        text={formatMeasurement(getDistance(points[points.length - 1], currentPos))}
+        fill={previewColor}
+        fontSize={14 / stageScale}
+        fontFamily="monospace"
+      />}
+    </Layer>;
   };
   const renderSelectionBox = () => {
     if (activeTool === Tool.SELECT && selectionBounds) {
       return <Layer>
-          <Rect
-        x={selectionBounds.x}
-        y={selectionBounds.y}
-        width={selectionBounds.width}
-        height={selectionBounds.height}
-        fill="rgba(74, 144, 226, 0.2)"
-        stroke="#4a90e2"
-        strokeWidth={1 / stageScale}
-        listening={false}
-      />
-        </Layer>;
+        <Rect
+          x={selectionBounds.x}
+          y={selectionBounds.y}
+          width={selectionBounds.width}
+          height={selectionBounds.height}
+          fill="rgba(74, 144, 226, 0.2)"
+          stroke="#4a90e2"
+          strokeWidth={1 / stageScale}
+          listening={false}
+        />
+      </Layer>;
     }
     return null;
   };
@@ -698,23 +698,23 @@ function CadCanvas() {
         }
         if (obj.type === ShapeType.RECTANGLE) {
           return <React.Fragment>
-              <Text
-            x={obj.x + (obj.width || 0) / 2}
-            y={obj.y - 15 / stageScale}
-            text={formatMeasurement(Math.abs(obj.width || 0)) + " mm"}
-            fill="#4a90e2"
-            fontSize={10 / stageScale}
-            fontFamily="monospace"
-          />
-              <Text
-            x={obj.x + (obj.width || 0) + 5 / stageScale}
-            y={obj.y + (obj.height || 0) / 2}
-            text={formatMeasurement(Math.abs(obj.height || 0)) + " mm"}
-            fill="#4a90e2"
-            fontSize={10 / stageScale}
-            fontFamily="monospace"
-          />
-            </React.Fragment>;
+            <Text
+              x={obj.x + (obj.width || 0) / 2}
+              y={obj.y - 15 / stageScale}
+              text={formatMeasurement(Math.abs(obj.width || 0)) + " mm"}
+              fill="#4a90e2"
+              fontSize={10 / stageScale}
+              fontFamily="monospace"
+            />
+            <Text
+              x={obj.x + (obj.width || 0) + 5 / stageScale}
+              y={obj.y + (obj.height || 0) / 2}
+              text={formatMeasurement(Math.abs(obj.height || 0)) + " mm"}
+              fill="#4a90e2"
+              fontSize={10 / stageScale}
+              fontFamily="monospace"
+            />
+          </React.Fragment>;
         }
         if (obj.type === ShapeType.CIRCLE) {
           return <Text
@@ -757,10 +757,10 @@ function CadCanvas() {
             const offset = 6;
             const edgeStroke = commonProps.stroke === "#3b82f6" ? "#3b82f6" : isStraight(obj.points) ? "#22c55e" : obj.stroke === "#9ca3af" ? "#d1d5db" : obj.stroke;
             renderedShape = <Group {...commonProps} x={obj.x} y={obj.y}>
-                <Line points={obj.points} stroke={commonProps.stroke} strokeWidth={obj.strokeWidth / stageScale} opacity={0.3} lineCap="round" />
-                <Line points={[x1 + nx * offset, y1 + ny * offset, x2 + nx * offset, y2 + ny * offset]} stroke={edgeStroke} strokeWidth={1.5 / stageScale} />
-                <Line points={[x1 - nx * offset, y1 - ny * offset, x2 - nx * offset, y2 - ny * offset]} stroke={edgeStroke} strokeWidth={1.5 / stageScale} />
-              </Group>;
+              <Line points={obj.points} stroke={commonProps.stroke} strokeWidth={obj.strokeWidth / stageScale} opacity={0.3} lineCap="round" />
+              <Line points={[x1 + nx * offset, y1 + ny * offset, x2 + nx * offset, y2 + ny * offset]} stroke={edgeStroke} strokeWidth={1.5 / stageScale} />
+              <Line points={[x1 - nx * offset, y1 - ny * offset, x2 - nx * offset, y2 - ny * offset]} stroke={edgeStroke} strokeWidth={1.5 / stageScale} />
+            </Group>;
           } else {
             renderedShape = <Line {...commonProps} x={obj.x} y={obj.y} points={obj.points} lineCap="round" lineJoin="round" />;
           }
@@ -780,10 +780,10 @@ function CadCanvas() {
             const capLen = 5;
             const capStroke = commonProps.stroke === "#3b82f6" ? "#3b82f6" : isStraight(obj.points) ? "#22c55e" : obj.stroke;
             renderedShape = <Group {...commonProps} x={obj.x} y={obj.y}>
-                <Line points={obj.points} stroke={commonProps.stroke} strokeWidth={obj.strokeWidth / stageScale} lineCap="square" />
-                <Line points={[x1 + nx * capLen, y1 + ny * capLen, x1 - nx * capLen, y1 - ny * capLen]} stroke={capStroke} strokeWidth={3 / stageScale} />
-                <Line points={[x2 + nx * capLen, y2 + ny * capLen, x2 - nx * capLen, y2 - ny * capLen]} stroke={capStroke} strokeWidth={3 / stageScale} />
-              </Group>;
+              <Line points={obj.points} stroke={commonProps.stroke} strokeWidth={obj.strokeWidth / stageScale} lineCap="square" />
+              <Line points={[x1 + nx * capLen, y1 + ny * capLen, x1 - nx * capLen, y1 - ny * capLen]} stroke={capStroke} strokeWidth={3 / stageScale} />
+              <Line points={[x2 + nx * capLen, y2 + ny * capLen, x2 - nx * capLen, y2 - ny * capLen]} stroke={capStroke} strokeWidth={3 / stageScale} />
+            </Group>;
           } else {
             renderedShape = <Line {...commonProps} x={obj.x} y={obj.y} points={obj.points} lineCap="round" lineJoin="round" />;
           }
@@ -795,9 +795,9 @@ function CadCanvas() {
         return null;
       }
       return <React.Fragment key={obj.id}>
-          {renderedShape}
-          {renderMeasurements()}
-        </React.Fragment>;
+        {renderedShape}
+        {renderMeasurements()}
+      </React.Fragment>;
     });
   };
   const gridStyle = gridEnabled ? {
@@ -839,64 +839,64 @@ function CadCanvas() {
       }
     }}
   >
-      <Stage
-    ref={stageRef}
-    width={dimensions.width}
-    height={dimensions.height}
-    onWheel={handleWheel}
-    onPointerDown={handlePointerDown}
-    onPointerMove={handlePointerMove}
-    onPointerUp={handlePointerUp}
-    onDblClick={handleDblClick}
-    draggable={activeTool === Tool.HAND}
-    onDragEnd={(e) => {
-      if (e.target === stageRef.current) {
-        setStagePosition({ x: e.target.x(), y: e.target.y() });
-      }
-    }}
-    scaleX={stageScale}
-    scaleY={stageScale}
-    x={stagePosition.x}
-    y={stagePosition.y}
-  >
-        <Layer>
-          {renderGrid()}
-        </Layer>
-        <Layer>
-          {renderObjects()}
-          {activeTool === Tool.SELECT && selectedIds.length > 0 && <Transformer
-    ref={trRef}
-    enabledAnchors={[]}
-    rotateEnabled={true}
-    onTransformEnd={(e) => {
-      const stage = stageRef.current;
-      if (stage) {
-        useCadStore.setState((state) => {
-          const newObjects = state.objects.map((o) => {
-            if (selectedIds.includes(o.id)) {
-              const shape = stage.findOne(`#${o.id}`);
-              if (shape) {
-                return {
-                  ...o,
-                  x: shape.x(),
-                  y: shape.y(),
-                  rotation: shape.rotation()
-                };
-              }
+    <Stage
+      ref={stageRef}
+      width={dimensions.width}
+      height={dimensions.height}
+      onWheel={handleWheel}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onDblClick={handleDblClick}
+      draggable={activeTool === Tool.HAND}
+      onDragEnd={(e) => {
+        if (e.target === stageRef.current) {
+          setStagePosition({ x: e.target.x(), y: e.target.y() });
+        }
+      }}
+      scaleX={stageScale}
+      scaleY={stageScale}
+      x={stagePosition.x}
+      y={stagePosition.y}
+    >
+      <Layer>
+        {renderGrid()}
+      </Layer>
+      <Layer>
+        {renderObjects()}
+        {activeTool === Tool.SELECT && selectedIds.length > 0 && <Transformer
+          ref={trRef}
+          enabledAnchors={[]}
+          rotateEnabled={true}
+          onTransformEnd={(e) => {
+            const stage = stageRef.current;
+            if (stage) {
+              useCadStore.setState((state) => {
+                const newObjects = state.objects.map((o) => {
+                  if (selectedIds.includes(o.id)) {
+                    const shape = stage.findOne(`#${o.id}`);
+                    if (shape) {
+                      return {
+                        ...o,
+                        x: shape.x(),
+                        y: shape.y(),
+                        rotation: shape.rotation()
+                      };
+                    }
+                  }
+                  return o;
+                });
+                return { objects: newObjects };
+              });
+              commitHistory();
             }
-            return o;
-          });
-          return { objects: newObjects };
-        });
-        commitHistory();
-      }
-    }}
-  />}
-        </Layer>
-        {renderActiveDrawing()}
-        {renderSelectionBox()}
-      </Stage>
-    </div>;
+          }}
+        />}
+      </Layer>
+      {renderActiveDrawing()}
+      {renderSelectionBox()}
+    </Stage>
+  </div>;
 }
 export {
   CadCanvas
