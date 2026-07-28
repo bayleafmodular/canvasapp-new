@@ -11,6 +11,7 @@ import { StatusBar } from "./components/StatusBar";
 import dynamic from 'next/dynamic';
 const CadCanvas = dynamic(() => import('./components/CadCanvas').then(m => m.CadCanvas), { ssr: false });
 import { TemplateDrawer } from "./components/sidebars/TemplateDrawer";
+import { TabsBar } from "./components/layout/TabsBar";
 import { useEffect } from "react";
 import { useCadStore } from "@/store/useCadStore";
 import { Tool } from "@/types";
@@ -23,16 +24,29 @@ function App({ isTemplateMode = false, onBack = () => { } }: AppProps) {
   const { setTool, undo, redo, deleteSelected } = useCadStore();
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target instanceof HTMLInputElement ||
+         target instanceof HTMLTextAreaElement ||
+         target instanceof HTMLSelectElement ||
+         target.tagName === "INPUT" ||
+         target.tagName === "TEXTAREA" ||
+         target.tagName === "SELECT" ||
+         target.isContentEditable)
+      ) {
+        return;
+      }
+
       if (e.ctrlKey || e.metaKey) {
         if (e.key === "z") {
           e.preventDefault();
           undo();
-        } else if (e.key === "y" || e.shiftKey && e.key === "Z") {
+        } else if (e.key === "y" || (e.shiftKey && e.key === "Z")) {
           e.preventDefault();
           redo();
         }
       } else {
-        if (e.target instanceof HTMLInputElement) return;
         const key = e.key.toLowerCase();
         switch (key) {
           case "v":
@@ -85,7 +99,12 @@ function App({ isTemplateMode = false, onBack = () => { } }: AppProps) {
     bottom={<StatusBar />}
   >
     <TemplateDrawer />
-    <CadCanvas />
+    <div className="flex flex-col h-full w-full">
+      <TabsBar />
+      <div className="flex-1 relative min-h-0">
+        <CadCanvas />
+      </div>
+    </div>
   </AppLayout>;
 }
 export {

@@ -73,16 +73,52 @@ function TemplateEditor_Inner() {
         });
 
         // Load into canvas store
-        useCadStore.setState({
-          objects: t.objects || [],
-          layers: t.layers || [],
-          loadedDrawingId: null,
-          loadedDrawingName: t.name
-        });
+        const isMultiPanelTemplate = Array.isArray(t.objects) && 
+                                     t.objects.length > 0 &&
+                                     t.objects[0] !== null &&
+                                     typeof t.objects[0] === 'object' &&
+                                     'objects' in t.objects[0] &&
+                                     'name' in t.objects[0];
+
+        let fitObjects = t.objects;
+
+        if (isMultiPanelTemplate) {
+          const templatePanels = t.objects;
+          const activePanel = templatePanels[0];
+          fitObjects = activePanel.objects;
+
+          useCadStore.setState({
+            panels: templatePanels,
+            activePanelId: activePanel.id,
+            objects: activePanel.objects,
+            layers: activePanel.layers,
+            activeLayerId: activePanel.activeLayerId,
+            loadedDrawingId: null,
+            loadedDrawingName: t.name
+          });
+        } else {
+          const defaultLayerId = t.layers?.[0]?.id || "layer-1";
+          const fallbackPanel = {
+            id: "panel-1",
+            name: "Main Design",
+            objects: t.objects || [],
+            layers: t.layers || [{ id: defaultLayerId, name: "0", visible: true, locked: false, color: "#FFFFFF" }],
+            activeLayerId: defaultLayerId
+          };
+          useCadStore.setState({
+            panels: [fallbackPanel],
+            activePanelId: "panel-1",
+            objects: t.objects || [],
+            layers: fallbackPanel.layers,
+            activeLayerId: defaultLayerId,
+            loadedDrawingId: null,
+            loadedDrawingName: t.name
+          });
+        }
         useCadStore.getState().commitHistory();
 
         // Auto-fit calculation
-        const bounds = calculateBounds(t.objects);
+        const bounds = calculateBounds(fitObjects);
         if (bounds) {
           const padding = 50;
           // Approximate viewport width (subtracting left/right sidebars & drawer width)
@@ -138,10 +174,10 @@ function TemplateEditor_Inner() {
     }
 
     setSaving(true);
-    const { objects, layers } = useCadStore.getState();
+    const { objects, layers, panels } = useCadStore.getState();
     const payload = {
       ...templateMeta,
-      objects,
+      objects: panels,
       layers
     };
 

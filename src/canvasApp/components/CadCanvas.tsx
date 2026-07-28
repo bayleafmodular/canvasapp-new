@@ -4,12 +4,14 @@ import { Stage, Layer, Line, Rect, Circle, Arc, Text, Transformer, Group } from 
 import { useCadStore } from '@/store/useCadStore';
 import { Tool, ShapeType } from '@/types';
 import { snapToGrid, getDistance, getAngle, getOrthoPoint, SNAP_THRESHOLD, formatMeasurement } from '@/utils/math';
+import { AnnotationRenderer } from './annotations/AnnotationRenderer';
 const GRID_SIZE = 50;
 function CadCanvas() {
   const containerRef = useRef<any>(null);
   const stageRef = useRef<any>(null);
   const trRef = useRef<any>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [editingAnnotationId, setEditingAnnotationId] = useState<string | null>(null);
   const {
     objects,
     activeTool,
@@ -28,11 +30,13 @@ function CadCanvas() {
     selectObjects,
     selectedIds,
     commitHistory,
-    deleteObject
+    deleteObject,
+    canvasTheme
   } = useCadStore();
   const [drawingState, setDrawingState] = useState<any>({ active: false, points: [], currentPos: null });
   const [selectionStart, setSelectionStart] = useState<any>(null);
   const [selectionBounds, setSelectionBounds] = useState<any>(null);
+
   useEffect(() => {
     const handleResize = () => {
       if (containerRef.current) {
@@ -56,9 +60,31 @@ function CadCanvas() {
       }
     };
     window.addEventListener("export-png", handleExport);
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement ||
+          target instanceof HTMLSelectElement ||
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      const isMod = e.ctrlKey || e.metaKey;
+      if (isMod && (e.key === "0" || e.code === "Digit0" || e.code === "Numpad0")) {
+        e.preventDefault();
+        useCadStore.getState().zoomToFit();
+      }
+    };
+    window.addEventListener("keydown", handleGlobalKeyDown);
     return () => {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("export-png", handleExport);
+      window.removeEventListener("keydown", handleGlobalKeyDown);
     };
   }, []);
   useEffect(() => {
@@ -173,6 +199,37 @@ function CadCanvas() {
           }
         }
       }
+      return;
+    }
+    if (activeTool === Tool.ANNOTATION) {
+      const newObj = {
+        type: ShapeType.ANNOTATION,
+        x: 0,
+        y: 0,
+        startPoint: { x: snappedPos.x, y: snappedPos.y },
+        textPos: { x: snappedPos.x + 60, y: snappedPos.y - 30 },
+        text: "NEW ANNOTATION",
+        fontSize: 14,
+        fontFamily: "sans-serif",
+        fontColor: activeColor || "#ffffff",
+        bold: false,
+        italic: false,
+        underline: false,
+        align: "left",
+        rotation: 0,
+        leaderColor: activeColor || "#ffffff",
+        leaderWidth: 1.5,
+        leaderStyle: "solid",
+        arrowType: "dot",
+        arrowSize: 10,
+        layerId: useCadStore.getState().activeLayerId,
+        selectable: true
+      };
+      const newId = addObject(newObj);
+      commitHistory();
+      selectObjects([newId]);
+      setEditingAnnotationId(newId);
+      useCadStore.getState().setTool(Tool.SELECT);
       return;
     }
     if (activeTool === Tool.FREE_DRAW) {
@@ -352,6 +409,13 @@ function CadCanvas() {
             ox2 = obj.x + (obj.radius || 0);
             oy1 = obj.y - (obj.radius || 0);
             oy2 = obj.y + (obj.radius || 0);
+          } else if (obj.type === ShapeType.ANNOTATION) {
+            const sp = obj.startPoint || { x: obj.x, y: obj.y };
+            const tp = obj.textPos || { x: obj.x + 60, y: obj.y - 30 };
+            ox1 = Math.min(sp.x, tp.x);
+            ox2 = Math.max(sp.x, tp.x + 100);
+            oy1 = Math.min(sp.y, tp.y);
+            oy2 = Math.max(sp.y, tp.y + 40);
           } else if (obj.points && obj.points.length > 0) {
             ox1 = Math.min(...obj.points.filter((_: any, i: number) => i % 2 === 0)) + obj.x;
             ox2 = Math.max(...obj.points.filter((_: any, i: number) => i % 2 === 0)) + obj.x;
@@ -467,7 +531,14 @@ function CadCanvas() {
       }
       return allXSame || allYSame;
     };
-    const previewColor = activeColor;
+    const isLight = canvasTheme === "light";
+    let previewColor = activeColor;
+    if (isLight) {
+      const activeColorLower = activeColor.toLowerCase();
+      if (activeColorLower === "#ffffff" || activeColorLower === "#fff") {
+        previewColor = "#0f172a";
+      }
+    }
     return <Layer>
       {activeTool === Tool.LINE && <Line
         points={linePts}
@@ -489,9 +560,12 @@ function CadCanvas() {
           const nx = -dy / len;
           const ny = dx / len;
           const offset = 6 / stageScale;
+          const edgeStroke = isStraight(linePts)
+            ? "#22c55e"
+            : (isLight ? "#475569" : "#e5e7eb");
           return <React.Fragment>
-            <Line points={[p1.x + nx * offset, p1.y + ny * offset, currentPos.x + nx * offset, currentPos.y + ny * offset]} stroke={isStraight(linePts) ? "#22c55e" : "#e5e7eb"} strokeWidth={1.5 / stageScale} />
-            <Line points={[p1.x - nx * offset, p1.y - ny * offset, currentPos.x - nx * offset, currentPos.y - ny * offset]} stroke={isStraight(linePts) ? "#22c55e" : "#e5e7eb"} strokeWidth={1.5 / stageScale} />
+            <Line points={[p1.x + nx * offset, p1.y + ny * offset, currentPos.x + nx * offset, currentPos.y + ny * offset]} stroke={edgeStroke} strokeWidth={1.5 / stageScale} />
+            <Line points={[p1.x - nx * offset, p1.y - ny * offset, currentPos.x - nx * offset, currentPos.y - ny * offset]} stroke={edgeStroke} strokeWidth={1.5 / stageScale} />
           </React.Fragment>;
         })()}
       </Group>}
@@ -618,7 +692,13 @@ function CadCanvas() {
     };
     return objects.map((obj) => {
       const isSelected = selectedIds.includes(obj.id);
-      const stroke = isSelected ? "#3b82f6" : obj.stroke;
+      let stroke = isSelected ? "#3b82f6" : obj.stroke;
+      if (canvasTheme === "light" && !isSelected) {
+        const strokeLower = (stroke || "").toLowerCase();
+        if (strokeLower === "#ffffff" || strokeLower === "#fff") {
+          stroke = "#0f172a";
+        }
+      }
       const strokeWidth = isSelected ? 3 : obj.strokeWidth;
       const commonProps = {
         id: obj.id,
@@ -682,6 +762,7 @@ function CadCanvas() {
       let shapeParams = {};
       const renderMeasurements = () => {
         if (!showMeasurements) return null;
+        const labelColor = canvasTheme === "light" ? "#1d4ed8" : "#4a90e2";
         if ((obj.type === ShapeType.LINE || obj.type === ShapeType.WALL || obj.type === ShapeType.BEAM || obj.type === ShapeType.LINTEL) && obj.points.length === 4) {
           const pt1 = { x: obj.points[0] + obj.x, y: obj.points[1] + obj.y };
           const pt2 = { x: obj.points[2] + obj.x, y: obj.points[3] + obj.y };
@@ -690,7 +771,7 @@ function CadCanvas() {
             x={(pt1.x + pt2.x) / 2 + 10 / stageScale}
             y={(pt1.y + pt2.y) / 2 - 20 / stageScale}
             text={formatMeasurement(dist) + " mm"}
-            fill="#4a90e2"
+            fill={labelColor}
             fontSize={10 / stageScale}
             fontFamily="monospace"
             padding={2 / stageScale}
@@ -702,7 +783,7 @@ function CadCanvas() {
               x={obj.x + (obj.width || 0) / 2}
               y={obj.y - 15 / stageScale}
               text={formatMeasurement(Math.abs(obj.width || 0)) + " mm"}
-              fill="#4a90e2"
+              fill={labelColor}
               fontSize={10 / stageScale}
               fontFamily="monospace"
             />
@@ -710,7 +791,7 @@ function CadCanvas() {
               x={obj.x + (obj.width || 0) + 5 / stageScale}
               y={obj.y + (obj.height || 0) / 2}
               text={formatMeasurement(Math.abs(obj.height || 0)) + " mm"}
-              fill="#4a90e2"
+              fill={labelColor}
               fontSize={10 / stageScale}
               fontFamily="monospace"
             />
@@ -721,7 +802,7 @@ function CadCanvas() {
             x={obj.x + (obj.radius || 0) + 5 / stageScale}
             y={obj.y}
             text={`R ${formatMeasurement(obj.radius || 0)} mm`}
-            fill="#4a90e2"
+            fill={labelColor}
             fontSize={10 / stageScale}
             fontFamily="monospace"
           />;
@@ -745,6 +826,19 @@ function CadCanvas() {
           break;
         case ShapeType.ARC:
           renderedShape = <Arc {...commonProps} x={obj.x} y={obj.y} innerRadius={obj.radius} outerRadius={obj.radius} rotation={obj.rotation} angle={obj.endAngle} />;
+          break;
+        case ShapeType.ANNOTATION:
+          renderedShape = <AnnotationRenderer
+            obj={obj}
+            isSelected={isSelected}
+            isEditing={editingAnnotationId === obj.id}
+            stageScale={stageScale}
+            activeTool={activeTool}
+            onStartEdit={(anno) => {
+              setEditingAnnotationId(anno.id);
+              selectObjects([anno.id]);
+            }}
+          />;
           break;
         case ShapeType.WALL: {
           const [x1, y1, x2, y2] = obj.points;
@@ -800,23 +894,46 @@ function CadCanvas() {
       </React.Fragment>;
     });
   };
+  const isLight = canvasTheme === "light";
   const gridStyle = gridEnabled ? {
-    backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.15) 1px, transparent 1px)",
+    backgroundImage: isLight
+      ? "radial-gradient(circle, rgba(15,23,42,0.12) 1px, transparent 1px)"
+      : "radial-gradient(circle, rgba(255,255,255,0.15) 1px, transparent 1px)",
     backgroundSize: `${20 * stageScale}px ${20 * stageScale}px`,
-    backgroundPosition: `${stagePosition.x}px ${stagePosition.y}px`
-  } : {};
+    backgroundPosition: `${stagePosition.x}px ${stagePosition.y}px`,
+    backgroundColor: isLight ? "#ffffff" : "#1a1b1e"
+  } : {
+    backgroundColor: isLight ? "#ffffff" : "#1a1b1e"
+  };
+  const editingAnnotationObj = editingAnnotationId ? objects.find((o) => o.id === editingAnnotationId) : null;
+
   return <div
     ref={containerRef}
-    className={`w-full h-full outline-none ${activeTool === Tool.HAND ? "cursor-grab active:cursor-grabbing" : (
-      /* activeTool === Tool.ERASER ? 'cursor-pointer' : */
-      "cursor-crosshair"
-    )}`}
+    className={`w-full h-full outline-none relative transition-colors duration-200 ${
+      isLight ? "bg-white text-slate-800" : "bg-[#1a1b1e] text-[#d1d1d1]"
+    } ${activeTool === Tool.HAND ? "cursor-grab active:cursor-grabbing" : "cursor-crosshair"}`}
     style={gridStyle}
     tabIndex={0}
     onKeyDown={(e) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement ||
+          target instanceof HTMLSelectElement ||
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
       const store = useCadStore.getState();
       const isMod = e.ctrlKey || e.metaKey;
-      if (isMod && e.key.toLowerCase() === "c") {
+      if (isMod && (e.key === "0" || e.code === "Digit0" || e.code === "Numpad0")) {
+        e.preventDefault();
+        store.zoomToFit();
+      } else if (isMod && e.key.toLowerCase() === "c") {
         e.preventDefault();
         store.copyObjects();
       } else if (isMod && e.key.toLowerCase() === "v") {
@@ -830,6 +947,8 @@ function CadCanvas() {
         store.duplicateObjects();
       } else if (e.key === "Delete" || e.key === "Backspace") {
         store.deleteSelected();
+      } else if (e.key.toLowerCase() === "t" && !editingAnnotationId) {
+        store.setTool(Tool.ANNOTATION);
       } else if (e.key === "Escape") {
         if (activeTool === Tool.POLYLINE && drawingState.points.length > 1) {
           handleDblClick(e);
@@ -839,6 +958,77 @@ function CadCanvas() {
       }
     }}
   >
+    {editingAnnotationObj && (() => {
+      const textX = (editingAnnotationObj.textPos?.x || 0) * stageScale + stagePosition.x;
+      const textY = (editingAnnotationObj.textPos?.y || 0) * stageScale + stagePosition.y;
+      const fSize = (editingAnnotationObj.fontSize || 14) * stageScale;
+      const lines = (editingAnnotationObj.text || "").split("\n");
+      const maxLineLen = Math.max(...lines.map((l: string) => l.length), 4);
+      const approxWidth = Math.max(70, maxLineLen * (fSize * 0.65) + 24);
+      const approxHeight = Math.max(30, lines.length * (fSize * 1.35) + 14);
+
+      let fontStyle = "normal";
+      if (editingAnnotationObj.bold && editingAnnotationObj.italic) fontStyle = "italic bold";
+      else if (editingAnnotationObj.bold) fontStyle = "bold";
+      else if (editingAnnotationObj.italic) fontStyle = "italic";
+
+      return (
+        <div
+          style={{
+            position: "absolute",
+            left: `${textX - 6}px`,
+            top: `${textY - 6}px`,
+            zIndex: 50,
+          }}
+        >
+          <textarea
+            autoFocus
+            value={editingAnnotationObj.text || ""}
+            onChange={(e) => {
+              updateObject(editingAnnotationObj.id, { text: e.target.value });
+            }}
+            onBlur={() => {
+              commitHistory();
+              setEditingAnnotationId(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setEditingAnnotationId(null);
+              } else if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                commitHistory();
+                setEditingAnnotationId(null);
+              }
+            }}
+            style={{
+              width: `${approxWidth}px`,
+              height: `${approxHeight}px`,
+              fontSize: `${fSize}px`,
+              fontFamily: editingAnnotationObj.fontFamily || "sans-serif",
+              fontStyle: fontStyle,
+              textDecoration: editingAnnotationObj.underline ? "underline" : "none",
+              color: (() => {
+                let textFontColor = editingAnnotationObj.fontColor || (isLight ? "#0f172a" : "#ffffff");
+                if (isLight && (textFontColor.toLowerCase() === "#ffffff" || textFontColor.toLowerCase() === "#fff")) {
+                  textFontColor = "#0f172a";
+                }
+                return textFontColor;
+              })(),
+              backgroundColor: "transparent",
+              border: "1.5px dashed #3b82f6",
+              borderRadius: "3px",
+              padding: "4px 6px",
+              lineHeight: 1.2,
+              outline: "none",
+              resize: "none",
+              boxShadow: "0 0 10px rgba(59, 130, 246, 0.4)",
+              overflow: "hidden",
+            }}
+          />
+        </div>
+      );
+    })()}
+
     <Stage
       ref={stageRef}
       width={dimensions.width}

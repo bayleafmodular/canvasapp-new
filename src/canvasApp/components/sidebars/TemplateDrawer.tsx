@@ -65,20 +65,55 @@ export function TemplateDrawer() {
 
   const handleLoadTemplate = (template: any) => {
     const { objects, setStageScale, setStagePosition } = useCadStore.getState();
-    if (objects.length > 0) {
+    if (objects.length > 0 || useCadStore.getState().panels.length > 1) {
       if (!confirm("Loading a template will clear your current drawing. Continue?")) return;
     }
     
-    useCadStore.setState({
-      objects: template.objects,
-      layers: template.layers,
-      loadedDrawingId: null,
-      loadedDrawingName: template.name
-    });
+    const isMultiPanelTemplate = Array.isArray(template.objects) && 
+                                 template.objects.length > 0 &&
+                                 template.objects[0] !== null &&
+                                 typeof template.objects[0] === 'object' &&
+                                 'objects' in template.objects[0] &&
+                                 'name' in template.objects[0];
+
+    let fitObjects = template.objects;
+
+    if (isMultiPanelTemplate) {
+      const templatePanels = template.objects;
+      const activePanel = templatePanels[0];
+      fitObjects = activePanel.objects;
+
+      useCadStore.setState({
+        panels: templatePanels,
+        activePanelId: activePanel.id,
+        objects: activePanel.objects,
+        layers: activePanel.layers,
+        activeLayerId: activePanel.activeLayerId,
+        loadedDrawingId: null,
+        loadedDrawingName: template.name
+      });
+    } else {
+      const activeId = useCadStore.getState().activePanelId;
+      const currentPanels = useCadStore.getState().panels;
+      const updatedPanels = currentPanels.map((p) =>
+        p.id === activeId 
+          ? { ...p, objects: template.objects, layers: template.layers, activeLayerId: template.layers[0]?.id || "layer-1" }
+          : p
+      );
+
+      useCadStore.setState({
+        objects: template.objects,
+        layers: template.layers,
+        activeLayerId: template.layers[0]?.id || "layer-1",
+        loadedDrawingId: null,
+        loadedDrawingName: template.name,
+        panels: updatedPanels
+      });
+    }
     useCadStore.getState().commitHistory();
 
     // Auto-fit calculation
-    const bounds = calculateBounds(template.objects);
+    const bounds = calculateBounds(fitObjects);
     if (bounds) {
       const padding = 50;
       // Approximate viewport width (subtracting left/right sidebars & drawer width)
@@ -201,7 +236,15 @@ export function TemplateDrawer() {
                         className="bg-[#25262b] border border-[#333] hover:border-[#4a90e2] rounded-md p-3 transition-colors group flex flex-col gap-3"
                       >
                         <div className="w-full h-28 bg-[#141517] rounded border border-[#333] p-2 flex items-center justify-center overflow-hidden">
-                          <TemplatePreview objects={template.objects} strokeColor="#4a90e2" className="w-full h-full" />
+                          {(() => {
+                            const isMulti = Array.isArray(template.objects) && 
+                                            template.objects.length > 0 &&
+                                            template.objects[0] !== null &&
+                                            typeof template.objects[0] === 'object' &&
+                                            'objects' in template.objects[0];
+                            const previewObjects = isMulti ? template.objects[0].objects : template.objects;
+                            return <TemplatePreview objects={previewObjects} strokeColor="#4a90e2" className="w-full h-full" />;
+                          })()}
                         </div>
                         <div className="flex justify-between items-start">
                           <div>
@@ -212,13 +255,37 @@ export function TemplateDrawer() {
                           </div>
                         </div>
                         
-                        <div className="flex gap-4 text-[#888] text-[10px]">
-                          <div className="flex items-center gap-1" title="Number of Objects">
-                            <Shapes size={12} /> {template.objects?.length || 0}
-                          </div>
-                          <div className="flex items-center gap-1" title="Number of Layers">
-                            <Layers size={12} /> {template.layers?.length || 0}
-                          </div>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[#888] text-[10px]">
+                          {(() => {
+                            const isMulti = Array.isArray(template.objects) && 
+                                            template.objects.length > 0 &&
+                                            template.objects[0] !== null &&
+                                            typeof template.objects[0] === 'object' &&
+                                            'objects' in template.objects[0];
+                            if (isMulti) {
+                              const totalObjects = template.objects.reduce((sum: number, p: any) => sum + (p.objects?.length || 0), 0);
+                              return (
+                                <React.Fragment>
+                                  <div className="flex items-center gap-1" title="Number of Panels">
+                                    <LayoutTemplate size={12} /> {template.objects.length} Panels
+                                  </div>
+                                  <div className="flex items-center gap-1" title="Total Objects">
+                                    <Shapes size={12} /> {totalObjects}
+                                  </div>
+                                </React.Fragment>
+                              );
+                            }
+                            return (
+                              <React.Fragment>
+                                <div className="flex items-center gap-1" title="Number of Objects">
+                                  <Shapes size={12} /> {template.objects?.length || 0}
+                                </div>
+                                <div className="flex items-center gap-1" title="Number of Layers">
+                                  <Layers size={12} /> {template.layers?.length || 0}
+                                </div>
+                              </React.Fragment>
+                            );
+                          })()}
                         </div>
 
                         <button 

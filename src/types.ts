@@ -7,7 +7,8 @@ export enum ShapeType {
   FREE_DRAW = "free_draw",
   WALL = "wall",
   BEAM = "beam",
-  LINTEL = "lintel"
+  LINTEL = "lintel",
+  ANNOTATION = "annotation"
 }
 
 export enum Tool {
@@ -23,6 +24,7 @@ export enum Tool {
   ERASER = "eraser",
   WALL = "wall",
   BEAM = "beam",
-  LINTEL = "lintel"
+  LINTEL = "lintel",
+  ANNOTATION = "annotation"
 }
 

@@ -9,7 +9,8 @@ import {
   Circle,
   Pencil,
   Trash2,
-  LayoutTemplate
+  LayoutTemplate,
+  MessageSquare
 } from "lucide-react";
 import { cn }  from '@/lib/utils';
 import { PolylineIcon, ArcIcon, WallIcon, BeamIcon, LintelIcon } from "./Icons";
@@ -27,7 +28,8 @@ function LeftToolbar() {
     { tool: Tool.RECTANGLE, icon: Square, label: "Rectangle (R)" },
     { tool: Tool.CIRCLE, icon: Circle, label: "Circle (C)" },
     { tool: Tool.ARC, icon: ArcIcon, label: "Arc (A)" },
-    { tool: Tool.FREE_DRAW, icon: Pencil, label: "Free Draw (F)" }
+    { tool: Tool.FREE_DRAW, icon: Pencil, label: "Free Draw (F)" },
+    { tool: Tool.ANNOTATION, icon: MessageSquare, label: "Annotation (T)" }
     /* { tool: Tool.ERASER, icon: Eraser, label: 'Eraser (E)' }, */
   ];
   return <div

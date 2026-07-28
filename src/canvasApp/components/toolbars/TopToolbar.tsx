@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { useCadStore }  from '@/store/useCadStore';
-import { Undo2, Redo2, Grid, Magnet, Ruler, AlignEndHorizontal, Upload, Image, FileJson, FileEdit, CloudUpload, CloudDownload, ChevronDown, Save, FolderOpen, Trash2, X, FilePlus, Calculator } from "lucide-react";
+import { Undo2, Redo2, Grid, Magnet, Ruler, AlignEndHorizontal, Maximize2, Upload, Image, FileJson, FileEdit, CloudUpload, CloudDownload, ChevronDown, Save, FolderOpen, Trash2, X, FilePlus, Calculator, Sun, Moon } from "lucide-react";
 import { cn, downloadFile }  from '@/lib/utils';
 import { createDrawing, deleteDrawing, getDrawing, getDrawings, getPricingSettings, createOrder, updateDrawing }  from '@/services/api';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
@@ -18,6 +18,7 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
     toggleSnap,
     toggleOrtho,
     toggleMeasurements,
+    zoomToFit,
     undo,
     redo,
     historyStep,
@@ -28,7 +29,10 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
     setActiveColor,
     clearDrawing,
     loadedDrawingId,
-    loadedDrawingName
+    loadedDrawingName,
+    panels,
+    canvasTheme,
+    toggleCanvasTheme
   } = useCadStore();
   const fileInputRef = useRef<any>(null);
   const [saveMenuOpen, setSaveMenuOpen] = useState(false);
@@ -95,6 +99,11 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
     }
     clearDrawing();
   };
+  const handleClearCanvas = () => {
+    if (confirm("Are you sure you want to clear the entire canvas? This will delete all drawn shapes.")) {
+      clearDrawing();
+    }
+  };
   const handleExportPng = () => {
     window.dispatchEvent(new CustomEvent("export-png"));
   };
@@ -143,6 +152,17 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
             while (startAt < 0) startAt += 360;
             while (endAt < 0) endAt += 360;
             d.drawArc(obj.x, -obj.y, obj.radius, startAt, endAt);
+          }
+          break;
+        case ShapeType.ANNOTATION:
+          if (obj.startPoint && obj.textPos) {
+            d.drawLine(obj.startPoint.x, -obj.startPoint.y, obj.textPos.x, -obj.textPos.y);
+            if (obj.text) {
+              const lines = String(obj.text).split('\n');
+              lines.forEach((lineText, idx) => {
+                d.drawText(obj.textPos.x, -(obj.textPos.y + idx * (obj.fontSize || 14)), obj.fontSize || 14, 0, lineText);
+              });
+            }
           }
           break;
       }
@@ -194,7 +214,7 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
         quantity: 1,
         totalPrice: priceResult.total,
         blueprintType,
-        drawingData: objects,
+        drawingData: panels,
       });
 
       alert("Order placed successfully! Admins will review it shortly.");
@@ -212,7 +232,9 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
     const data = {
       objects,
       layers,
-      version: "1.0"
+      panels,
+      activePanelId: useCadStore.getState().activePanelId,
+      version: "1.1"
     };
     const jsonStr = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonStr], { type: "application/json" });
@@ -227,19 +249,41 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
     reader.onload = (event: any) => {
       try {
         const data = JSON.parse(event.target?.result as string);
-        if (data.objects && Array.isArray(data.objects)) {
+        if (data.panels && Array.isArray(data.panels) && data.panels.length > 0) {
+          const activePanel = data.panels.find((p: any) => p.id === data.activePanelId) || data.panels[0];
           useCadStore.setState({
-            objects: data.objects,
+            panels: data.panels,
+            activePanelId: activePanel.id,
+            objects: activePanel.objects,
+            layers: activePanel.layers,
+            activeLayerId: activePanel.activeLayerId,
             loadedDrawingId: null,
             loadedDrawingName: null
           });
-          if (data.layers) {
-            useCadStore.setState({ layers: data.layers });
-          }
+          useCadStore.getState().commitHistory();
+        } else if (data.objects && Array.isArray(data.objects)) {
+          const defaultLayerId = data.activeLayerId || (data.layers?.[0]?.id) || "layer-1";
+          const fallbackPanel = {
+            id: "panel-1",
+            name: "Main Design",
+            objects: data.objects,
+            layers: data.layers || [{ id: defaultLayerId, name: "0", visible: true, locked: false, color: "#FFFFFF" }],
+            activeLayerId: defaultLayerId
+          };
+          useCadStore.setState({
+            panels: [fallbackPanel],
+            activePanelId: "panel-1",
+            objects: data.objects,
+            layers: fallbackPanel.layers,
+            activeLayerId: defaultLayerId,
+            loadedDrawingId: null,
+            loadedDrawingName: null
+          });
           useCadStore.getState().commitHistory();
         }
       } catch (err) {
-        alert("Invalid CAD JSON file");
+        console.error(err);
+        alert("Invalid project file.");
       }
     };
     reader.readAsText(file);
@@ -253,7 +297,9 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
     const data = {
       objects,
       layers,
-      version: "1.0"
+      panels,
+      activePanelId: useCadStore.getState().activePanelId,
+      version: "1.1"
     };
     setBrowserLoading(true);
     try {
@@ -280,7 +326,9 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
     const data = {
       objects,
       layers,
-      version: "1.0"
+      panels,
+      activePanelId: useCadStore.getState().activePanelId,
+      version: "1.1"
     };
     setBrowserLoading(true);
     try {
@@ -300,15 +348,37 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
     try {
       const { data: drawing } = await getDrawing(id);
       const data = drawing.data;
-      if (data.objects && Array.isArray(data.objects)) {
+      if (data.panels && Array.isArray(data.panels) && data.panels.length > 0) {
+        const activePanel = data.panels.find((p: any) => p.id === data.activePanelId) || data.panels[0];
         useCadStore.setState({
-          objects: data.objects,
+          panels: data.panels,
+          activePanelId: activePanel.id,
+          objects: activePanel.objects,
+          layers: activePanel.layers,
+          activeLayerId: activePanel.activeLayerId,
           loadedDrawingId: drawing.id,
           loadedDrawingName: drawing.name
         });
-        if (data.layers) {
-          useCadStore.setState({ layers: data.layers });
-        }
+        useCadStore.getState().commitHistory();
+        setBrowserModalOpen(null);
+      } else if (data.objects && Array.isArray(data.objects)) {
+        const defaultLayerId = data.activeLayerId || (data.layers?.[0]?.id) || "layer-1";
+        const fallbackPanel = {
+          id: "panel-1",
+          name: "Main Design",
+          objects: data.objects,
+          layers: data.layers || [{ id: defaultLayerId, name: "0", visible: true, locked: false, color: "#FFFFFF" }],
+          activeLayerId: defaultLayerId
+        };
+        useCadStore.setState({
+          panels: [fallbackPanel],
+          activePanelId: "panel-1",
+          objects: data.objects,
+          layers: fallbackPanel.layers,
+          activeLayerId: defaultLayerId,
+          loadedDrawingId: drawing.id,
+          loadedDrawingName: drawing.name
+        });
         useCadStore.getState().commitHistory();
         setBrowserModalOpen(null);
       }
@@ -369,6 +439,14 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
       >
         <Redo2 size={16} />
       </button>
+      <button
+        className="px-2.5 py-1.5 rounded flex items-center gap-1.5 text-xs tracking-wider uppercase font-semibold transition-colors border bg-transparent text-[#777] border-transparent hover:bg-red-950/20 hover:text-red-400 hover:border-red-900/20"
+        onClick={handleClearCanvas}
+        title="Clear Design"
+      >
+        <Trash2 size={14} />
+        <span>Clear Design</span>
+      </button>
 
       <div className="h-4 w-px shrink-0 bg-[#333] mx-1 md:mx-2" />
 
@@ -376,17 +454,68 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
       <ToggleBtn active={snapEnabled} onClick={toggleSnap} icon={Magnet} label="Snap" />
       <ToggleBtn active={orthoEnabled} onClick={toggleOrtho} icon={AlignEndHorizontal} label="Ortho" />
       <ToggleBtn active={showMeasurements} onClick={toggleMeasurements} icon={Ruler} label="Measure" />
+      <button
+        onClick={toggleCanvasTheme}
+        title={canvasTheme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
+        className="px-2.5 py-1.5 rounded flex items-center gap-1.5 text-xs tracking-wider uppercase font-semibold transition-colors border bg-transparent text-[#777] border-transparent hover:bg-[#3a3b41] hover:text-white"
+      >
+        {canvasTheme === "light" ? <Sun size={14} /> : <Moon size={14} />}
+        <span className="hidden xl:inline">{canvasTheme === "light" ? "Light" : "Dark"}</span>
+      </button>
+      <button
+        onClick={zoomToFit}
+        title="Zoom to Fit (Ctrl+0)"
+        className="px-2.5 py-1.5 rounded flex items-center gap-1.5 text-xs tracking-wider uppercase font-semibold transition-colors border bg-transparent text-[#777] border-transparent hover:bg-[#3a3b41] hover:text-white"
+      >
+        <Maximize2 size={14} />
+        <span className="hidden xl:inline">Fit View</span>
+      </button>
 
       <div className="h-4 w-px shrink-0 bg-[#333] mx-1" />
 
-      <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
+      <div className="flex items-center space-x-1.5 shrink-0 bg-[#1a1b1e] border border-[#333] px-2.5 py-1 rounded-md">
         <input
           type="color"
           value={activeColor}
           onChange={(e) => setActiveColor(e.target.value)}
           className="w-5 h-5 p-0 border-0 rounded cursor-pointer bg-transparent"
-          title="Active Drawing Color"
+          title="Custom Color Picker"
         />
+        <div className="h-4 w-px bg-[#333] mx-1" />
+        {[
+          { hex: "#FFFFFF", name: "White" },
+          { hex: "#9CA3AF", name: "Gray" },
+          { hex: "#EF4444", name: "Red" },
+          { hex: "#22C55E", name: "Green" },
+          { hex: "#3B82F6", name: "Blue" },
+          { hex: "#F97316", name: "Orange" },
+          { hex: "#06B6D4", name: "Cyan" }
+        ].map((swatch) => {
+          const isActive = activeColor.toLowerCase() === swatch.hex.toLowerCase();
+          return (
+            <button
+              key={swatch.hex}
+              onClick={() => setActiveColor(swatch.hex)}
+              title={swatch.name}
+              className={cn(
+                "w-4 h-4 rounded-full transition-all duration-150 relative border flex items-center justify-center",
+                isActive 
+                  ? "scale-110 ring-1 ring-blue-500 border-white" 
+                  : "border-transparent hover:scale-110 hover:border-gray-400"
+              )}
+              style={{ backgroundColor: swatch.hex }}
+            >
+              {isActive && (
+                <span 
+                  className="absolute text-[8px] font-bold" 
+                  style={{ color: swatch.hex === "#FFFFFF" ? "#000000" : "#FFFFFF" }}
+                >
+                  ✓
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       <div className="flex-grow min-w-[4px]"></div>
@@ -438,7 +567,7 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
               <FolderOpen size={14} /> <span className="hidden lg:inline">Open</span> <ChevronDown size={12} />
             </button>
 
-            {openMenuOpen && <div className="absolute left-0 md:left-auto md:right-0 top-full mt-1 w-40 bg-[#1e1f22] border border-[#333] rounded shadow-xl z-50 overflow-hidden flex flex-col">
+            {openMenuOpen && <div className="absolute left-0 top-full mt-1 w-40 bg-[#1e1f22] border border-[#333] rounded shadow-xl z-50 overflow-hidden flex flex-col">
               <button
                 className="px-4 py-2 text-xs text-left text-[#aaa] hover:text-white hover:bg-[#3a3b41] flex items-center gap-2"
                 onClick={(e) => {
@@ -476,7 +605,7 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
               <Save size={14} /> <span className="hidden lg:inline">Save</span> <ChevronDown size={12} />
             </button>
 
-            {saveMenuOpen && <div className="absolute left-0 md:left-auto md:right-0 top-full mt-1 w-40 bg-[#1e1f22] border border-[#333] rounded shadow-xl z-50 overflow-hidden flex flex-col">
+            {saveMenuOpen && <div className="absolute left-0 top-full mt-1 w-40 bg-[#1e1f22] border border-[#333] rounded shadow-xl z-50 overflow-hidden flex flex-col">
               {loadedDrawingId && (
                 <button
                   className="px-4 py-2 text-xs text-left text-[#aaa] hover:text-white hover:bg-[#3a3b41] flex items-center gap-2"

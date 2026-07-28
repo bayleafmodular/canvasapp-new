@@ -196,10 +196,28 @@ function ManageTemplates_Inner() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center font-mono text-gray-500">
-                        {template.objects?.length || 0}
+                        {(() => {
+                          const isMulti = Array.isArray(template.objects) &&
+                                          template.objects.length > 0 &&
+                                          template.objects[0] !== null &&
+                                          typeof template.objects[0] === 'object' &&
+                                          'objects' in template.objects[0];
+                          return isMulti
+                            ? template.objects.reduce((sum: number, p: any) => sum + (p.objects?.length || 0), 0)
+                            : (template.objects?.length || 0);
+                        })()}
                       </td>
                       <td className="px-6 py-4 text-center font-mono text-gray-500">
-                        {template.layers?.length || 0}
+                        {(() => {
+                          const isMulti = Array.isArray(template.objects) &&
+                                          template.objects.length > 0 &&
+                                          template.objects[0] !== null &&
+                                          typeof template.objects[0] === 'object' &&
+                                          'objects' in template.objects[0];
+                          return template.layers?.length || (isMulti
+                            ? template.objects.reduce((max: number, p: any) => Math.max(max, p.layers?.length || 0), 0)
+                            : 0);
+                        })()}
                       </td>
                       <td className="px-6 py-4">
                         <button
