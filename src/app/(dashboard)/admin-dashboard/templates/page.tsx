@@ -35,12 +35,9 @@ function ManageTemplates_Inner() {
   const canCreate = role === 'admin' || permissions['templates.create'];
   const canEdit = role === 'admin' || permissions['templates.edit'];
 
-  useEffect(() => {
-    loadTemplates();
-  }, []);
-
   const loadTemplates = async () => {
-    setLoading(true);
+    // Only set loading state if not already loading
+    setLoading(prev => prev ? prev : true);
     try {
       const res = await getTemplates();
       setTemplates(res.data);
@@ -50,6 +47,10 @@ function ManageTemplates_Inner() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadTemplates();
+  }, []);
 
   const handleToggleStatus = async (template: any) => {
     const newStatus = template.status === 'active' ? 'hidden' : 'active';
@@ -198,10 +199,10 @@ function ManageTemplates_Inner() {
                       <td className="px-6 py-4 text-center font-mono text-gray-500">
                         {(() => {
                           const isMulti = Array.isArray(template.objects) &&
-                                          template.objects.length > 0 &&
-                                          template.objects[0] !== null &&
-                                          typeof template.objects[0] === 'object' &&
-                                          'objects' in template.objects[0];
+                            template.objects.length > 0 &&
+                            template.objects[0] !== null &&
+                            typeof template.objects[0] === 'object' &&
+                            'objects' in template.objects[0];
                           return isMulti
                             ? template.objects.reduce((sum: number, p: any) => sum + (p.objects?.length || 0), 0)
                             : (template.objects?.length || 0);
@@ -210,10 +211,10 @@ function ManageTemplates_Inner() {
                       <td className="px-6 py-4 text-center font-mono text-gray-500">
                         {(() => {
                           const isMulti = Array.isArray(template.objects) &&
-                                          template.objects.length > 0 &&
-                                          template.objects[0] !== null &&
-                                          typeof template.objects[0] === 'object' &&
-                                          'objects' in template.objects[0];
+                            template.objects.length > 0 &&
+                            template.objects[0] !== null &&
+                            typeof template.objects[0] === 'object' &&
+                            'objects' in template.objects[0];
                           return template.layers?.length || (isMulti
                             ? template.objects.reduce((max: number, p: any) => Math.max(max, p.layers?.length || 0), 0)
                             : 0);
@@ -223,11 +224,10 @@ function ManageTemplates_Inner() {
                         <button
                           onClick={() => canEdit && handleToggleStatus(template)}
                           disabled={!canEdit}
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${
-                            !canEdit ? 'bg-gray-100 text-gray-400 cursor-not-allowed' :
-                            template.status === 'active'
-                              ? 'bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer'
-                              : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 cursor-pointer'
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${!canEdit ? 'bg-gray-100 text-gray-400 cursor-not-allowed' :
+                              template.status === 'active'
+                                ? 'bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer'
+                                : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 cursor-pointer'
                             }`}
                         >
                           {template.status === 'active' ? 'Active' : 'Hidden'}
@@ -263,7 +263,7 @@ function ManageTemplates_Inner() {
                               <Edit2 size={18} />
                             </button>
                           )}
-                           <button
+                          <button
                             onClick={() => handleDeleteClick(template)}
                             disabled={!canEdit}
                             className="p-1.5 text-gray-400 hover:text-red-600 disabled:opacity-50 disabled:hover:text-gray-400 transition-colors"

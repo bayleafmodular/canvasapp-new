@@ -109,67 +109,65 @@ export default function UserLogin() {
             </button>
           </form>
         ) : (
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input
-              type="email"
-              {...register('email', {
-                required: 'Email is required',
-                pattern: { value: /^\S+@\S+\.\S+$/, message: 'Enter a valid email' },
-              })}
-              placeholder="you@example.com"
-              className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 ${
-                errors.email
-                  ? 'border-red-300 focus:border-red-500 focus:ring-red-400'
-                  : 'border-gray-300 focus:ring-indigo-500'
-              }`}
-            />
-            {errors.email && <p className="text-red-500 text-xs mt-1">{(errors.email as any).message}</p>}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <div className="relative">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <input
-                type={showPassword ? 'text' : 'password'}
-                {...register('password', { required: 'Password is required' })}
-                placeholder="Your password"
-                className={`w-full border rounded-lg pl-3 pr-10 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 ${
-                  errors.password
+                type="email"
+                {...register('email', {
+                  required: 'Email is required',
+                  pattern: { value: /^\S+@\S+\.\S+$/, message: 'Enter a valid email' },
+                })}
+                placeholder="you@example.com"
+                className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 ${errors.email
                     ? 'border-red-300 focus:border-red-500 focus:ring-red-400'
                     : 'border-gray-300 focus:ring-indigo-500'
-                }`}
+                  }`}
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
+              {errors.email && <p className="text-red-500 text-xs mt-1">{(errors.email as any).message}</p>}
             </div>
-            {errors.password && <p className="text-red-500 text-xs mt-1">{(errors.password as any).message}</p>}
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-2 rounded-lg transition-colors"
-          >
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-          <div className="text-right">
-            <Link href="/forgot-password" className="text-sm text-indigo-600 hover:underline font-medium">
-              Forgot password?
-            </Link>
-          </div>
-        </form>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  {...register('password', { required: 'Password is required' })}
+                  placeholder="Your password"
+                  className={`w-full border rounded-lg pl-3 pr-10 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 ${errors.password
+                      ? 'border-red-300 focus:border-red-500 focus:ring-red-400'
+                      : 'border-gray-300 focus:ring-indigo-500'
+                    }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {errors.password && <p className="text-red-500 text-xs mt-1">{(errors.password as any).message}</p>}
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-2 rounded-lg transition-colors"
+            >
+              {loading ? 'Logging in...' : 'Login'}
+            </button>
+            <div className="text-right">
+              <Link href="/forgot-password" className="text-sm text-indigo-600 hover:underline font-medium">
+                Forgot password?
+              </Link>
+            </div>
+          </form>
         )}
 
         <div className="mt-6 space-y-2 text-sm text-center text-gray-500">
           <p>
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/register" className="text-indigo-600 hover:underline font-medium">Register</Link>
           </p>
           {/* <p>

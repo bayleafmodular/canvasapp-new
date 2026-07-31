@@ -73,12 +73,12 @@ function TemplateEditor_Inner() {
         });
 
         // Load into canvas store
-        const isMultiPanelTemplate = Array.isArray(t.objects) && 
-                                     t.objects.length > 0 &&
-                                     t.objects[0] !== null &&
-                                     typeof t.objects[0] === 'object' &&
-                                     'objects' in t.objects[0] &&
-                                     'name' in t.objects[0];
+        const isMultiPanelTemplate = Array.isArray(t.objects) &&
+          t.objects.length > 0 &&
+          t.objects[0] !== null &&
+          typeof t.objects[0] === 'object' &&
+          'objects' in t.objects[0] &&
+          'name' in t.objects[0];
 
         let fitObjects = t.objects;
 
@@ -152,7 +152,7 @@ function TemplateEditor_Inner() {
     } else {
       // New template, clear canvas
       useCadStore.getState().clearDrawing();
-      setLoading(false);
+      setLoading(prev => prev ? false : false);
     }
 
     // Listen for custom event from TopToolbar

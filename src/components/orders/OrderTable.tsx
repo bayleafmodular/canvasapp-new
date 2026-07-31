@@ -6,7 +6,7 @@ export default function OrderTable({ orders, loading, error, isAdmin, onView }: 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order: any) => {

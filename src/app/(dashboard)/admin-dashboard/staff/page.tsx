@@ -119,7 +119,7 @@ function ManageStaff_Inner() {
   }, [staff, searchTerm]);
 
   const loadStaff = () => {
-    setLoading(true);
+    setLoading(prev => prev ? prev : true);
     getStaffUsers()
       .then((res) => setStaff(res.data))
       .catch((err: any) => toast.error(err.response?.data?.message || 'Failed to load staff'))

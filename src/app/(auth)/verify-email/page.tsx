@@ -106,7 +106,7 @@ function VerifyEmailContent() {
         </form>
 
         <p className="text-sm text-center text-gray-500 mt-5">
-          Didn't receive it?{' '}
+          Didn&apos;t receive it?{' '}
           <button
             onClick={handleResend}
             disabled={resending}

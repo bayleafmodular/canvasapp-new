@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Layout from '@/components/layout/Layout';
 import { createAdminUser, getAdminUsers, updateUserRole, deleteUser } from '@/services/api';
-import { Trash2, Search } from 'lucide-react';
+import { Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 
 const roleBadge: Record<string, string> = {
@@ -42,6 +42,8 @@ function ManageUsers_Inner() {
   const [creating, setCreating] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'user' });
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const loggedInId = getLoggedInId();
   const role = localStorage.getItem('role');
   const permissions = getPermissions();
@@ -56,12 +58,24 @@ function ManageUsers_Inner() {
     );
   }, [users, searchTerm]);
 
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage) || 1;
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredUsers, currentPage]);
+
   useEffect(() => {
     getAdminUsers()
       .then((res) => setUsers(res.data))
       .catch(() => toast.error('Failed to load users'))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const handleRoleChange = async (id: string, newRole: string) => {
     if (!canEdit) return;
@@ -181,7 +195,10 @@ function ManageUsers_Inner() {
                 <input
                   type="search"
                   value={searchTerm}
-                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(event.target.value)}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                    setSearchTerm(event.target.value);
+                    setCurrentPage(1);
+                  }}
                   placeholder="Search users by name, email or role"
                   className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
@@ -207,11 +224,11 @@ function ManageUsers_Inner() {
                   <tr>
                     <td colSpan={6} className="px-6 py-10 text-center text-gray-400">No users found</td>
                   </tr>
-                ) : filteredUsers.length === 0 ? (
+                ) : paginatedUsers.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-10 text-center text-gray-400">No matching users found</td>
                   </tr>
-                ) : filteredUsers.map((u) => (
+                ) : paginatedUsers.map((u) => (
                   <tr key={u._id} className="hover:bg-gray-50 transition-colors">
 
                     {/* Name + avatar */}
@@ -277,6 +294,30 @@ function ManageUsers_Inner() {
               </tbody>
             </table>
           </div>
+          {/* Pagination footer */}
+          {totalPages > 1 && (
+            <div className="bg-white px-6 py-4 border-t border-gray-50 flex items-center justify-between">
+              <span className="text-xs text-gray-400">
+                Showing Page <span className="font-bold text-gray-700">{currentPage}</span> of <span className="font-bold text-gray-700">{totalPages}</span> ({filteredUsers.length} total users)
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>
