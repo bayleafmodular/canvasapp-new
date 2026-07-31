@@ -443,25 +443,30 @@ const useCadStore = create<CadState>()(
         });
       },
       clearDrawing: () => {
-        set({
-          objects: [],
-          history: [[]],
-          historyStep: 0,
-          selectedIds: [],
-          layers: [{ id: DEFAULT_LAYER_ID, name: "0", visible: true, locked: false, color: "#FFFFFF" }],
-          loadedDrawingId: null,
-          loadedDrawingName: null,
-          activeLayerId: DEFAULT_LAYER_ID,
-          stageScale: 1,
-          stagePosition: { x: 0, y: 0 },
-          panels: [{
-            id: DEFAULT_PANEL_ID,
-            name: "Main Design",
+        set((state) => {
+          const updatedPanels = state.panels.map((p) =>
+            p.id === state.activePanelId
+              ? {
+                  ...p,
+                  objects: [],
+                  layers: [{ id: DEFAULT_LAYER_ID, name: "0", visible: true, locked: false, color: "#FFFFFF" }],
+                  activeLayerId: DEFAULT_LAYER_ID
+                }
+              : p
+          );
+          return {
             objects: [],
+            history: [[]],
+            historyStep: 0,
+            selectedIds: [],
             layers: [{ id: DEFAULT_LAYER_ID, name: "0", visible: true, locked: false, color: "#FFFFFF" }],
-            activeLayerId: DEFAULT_LAYER_ID
-          }],
-          activePanelId: DEFAULT_PANEL_ID
+            activeLayerId: DEFAULT_LAYER_ID,
+            stageScale: 1,
+            stagePosition: { x: 0, y: 0 },
+            panels: updatedPanels,
+            loadedDrawingId: null,
+            loadedDrawingName: null
+          };
         });
       },
       setTemplateDrawerOpen: (isOpen) => set({ isTemplateDrawerOpen: isOpen })

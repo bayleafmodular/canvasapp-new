@@ -85,6 +85,14 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
       cancelled = true;
     };
   }, [browserModalOpen]);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setUserRole(localStorage.getItem('role'));
+    }
+  }, []);
+
   useEffect(() => {
     const handleClick = () => {
       setSaveMenuOpen(false);
@@ -405,15 +413,16 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
     onClick={onClick}
     title={label}
     className={cn(
-      "px-2.5 py-1.5 rounded flex items-center gap-1.5 text-xs tracking-wider uppercase font-semibold transition-colors border",
+      "px-2 py-1.5 rounded flex items-center gap-1 text-xs tracking-wider uppercase font-semibold transition-colors border",
       active ? "bg-[#3a3b41] text-[#4a90e2] border-[#4a90e2]" : "bg-transparent text-[#777] border-transparent hover:bg-[#3a3b41] hover:text-white"
     )}
   >
     <Icon size={14} />
-    <span className="hidden xl:inline">{label}</span>
+    <span className="hidden 2xl:inline">{label}</span>
   </button>;
-  return <><div className="flex items-center w-full flex-wrap gap-y-2 gap-x-1 sm:gap-x-2">
-      <div className="flex items-center space-x-1 sm:space-x-2 mr-1 sm:mr-2">
+  return <><div className="flex flex-wrap items-center justify-start w-full gap-x-2 md:gap-x-3 gap-y-1.5 py-1">
+      {/* Group 1: Logo & File Info */}
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         <div className="w-6 h-6 shrink-0 bg-[#4a90e2] rounded flex items-center justify-center font-bold text-white text-xs">P</div>
         <span className="text-sm font-semibold tracking-tight uppercase text-white hidden sm:inline">PrecisionCAD</span>
         {loadedDrawingName && (
@@ -422,58 +431,67 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
           </span>
         )}
       </div>
-      <div className="h-4 w-px shrink-0 bg-[#333] mx-1 md:mx-2" />
-      <button
-        className="p-1.5 rounded text-[#777] hover:bg-[#3a3b41] hover:text-white disabled:opacity-50"
-        onClick={undo}
-        disabled={historyStep === 0}
-        title="Undo (Ctrl+Z)"
-      >
-        <Undo2 size={16} />
-      </button>
-      <button
-        className="p-1.5 rounded text-[#777] hover:bg-[#3a3b41] hover:text-white disabled:opacity-50"
-        onClick={redo}
-        disabled={historyStep >= history.length - 1}
-        title="Redo (Ctrl+Y)"
-      >
-        <Redo2 size={16} />
-      </button>
-      <button
-        className="px-2.5 py-1.5 rounded flex items-center gap-1.5 text-xs tracking-wider uppercase font-semibold transition-colors border bg-transparent text-[#777] border-transparent hover:bg-red-950/20 hover:text-red-400 hover:border-red-900/20"
-        onClick={handleClearCanvas}
-        title="Clear Design"
-      >
-        <Trash2 size={14} />
-        <span>Clear Design</span>
-      </button>
 
-      <div className="h-4 w-px shrink-0 bg-[#333] mx-1 md:mx-2" />
+      <div className="h-4 w-px shrink-0 bg-[#333] mx-1 hidden sm:block" />
 
-      <ToggleBtn active={gridEnabled} onClick={toggleGrid} icon={Grid} label="Grid" />
-      <ToggleBtn active={snapEnabled} onClick={toggleSnap} icon={Magnet} label="Snap" />
-      <ToggleBtn active={orthoEnabled} onClick={toggleOrtho} icon={AlignEndHorizontal} label="Ortho" />
-      <ToggleBtn active={showMeasurements} onClick={toggleMeasurements} icon={Ruler} label="Measure" />
-      <button
-        onClick={toggleCanvasTheme}
-        title={canvasTheme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
-        className="px-2.5 py-1.5 rounded flex items-center gap-1.5 text-xs tracking-wider uppercase font-semibold transition-colors border bg-transparent text-[#777] border-transparent hover:bg-[#3a3b41] hover:text-white"
-      >
-        {canvasTheme === "light" ? <Sun size={14} /> : <Moon size={14} />}
-        <span className="hidden xl:inline">{canvasTheme === "light" ? "Light" : "Dark"}</span>
-      </button>
-      <button
-        onClick={zoomToFit}
-        title="Zoom to Fit (Ctrl+0)"
-        className="px-2.5 py-1.5 rounded flex items-center gap-1.5 text-xs tracking-wider uppercase font-semibold transition-colors border bg-transparent text-[#777] border-transparent hover:bg-[#3a3b41] hover:text-white"
-      >
-        <Maximize2 size={14} />
-        <span className="hidden xl:inline">Fit View</span>
-      </button>
+      {/* Group 2: History (Undo/Redo/Clear) */}
+      <div className="flex items-center gap-1 shrink-0">
+        <button
+          className="p-1.5 rounded text-[#777] hover:bg-[#3a3b41] hover:text-white disabled:opacity-50"
+          onClick={undo}
+          disabled={historyStep === 0}
+          title="Undo (Ctrl+Z)"
+        >
+          <Undo2 size={16} />
+        </button>
+        <button
+          className="p-1.5 rounded text-[#777] hover:bg-[#3a3b41] hover:text-white disabled:opacity-50"
+          onClick={redo}
+          disabled={historyStep >= history.length - 1}
+          title="Redo (Ctrl+Y)"
+        >
+          <Redo2 size={16} />
+        </button>
+        <button
+          className="px-2.5 py-1.5 rounded flex items-center gap-1.5 text-xs tracking-wider uppercase font-semibold transition-colors border bg-transparent text-[#777] border-transparent hover:bg-red-950/20 hover:text-red-400 hover:border-red-900/20"
+          onClick={handleClearCanvas}
+          title="Clear Design"
+        >
+          <Trash2 size={14} />
+          <span className="hidden sm:inline">Clear Design</span>
+        </button>
+      </div>
 
       <div className="h-4 w-px shrink-0 bg-[#333] mx-1" />
 
-      <div className="flex items-center space-x-1.5 shrink-0 bg-[#1a1b1e] border border-[#333] px-2.5 py-1 rounded-md">
+      {/* Group 3: View Options (Grid, Snap, Ortho, Measure, Theme, Fit) */}
+      <div className="flex items-center gap-1 flex-wrap shrink-0">
+        <ToggleBtn active={gridEnabled} onClick={toggleGrid} icon={Grid} label="Grid" />
+        <ToggleBtn active={snapEnabled} onClick={toggleSnap} icon={Magnet} label="Snap" />
+        <ToggleBtn active={orthoEnabled} onClick={toggleOrtho} icon={AlignEndHorizontal} label="Ortho" />
+        <ToggleBtn active={showMeasurements} onClick={toggleMeasurements} icon={Ruler} label="Measure" />
+        <button
+          onClick={toggleCanvasTheme}
+          title={canvasTheme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
+          className="px-2.5 py-1.5 rounded flex items-center gap-1.5 text-xs tracking-wider uppercase font-semibold transition-colors border bg-transparent text-[#777] border-transparent hover:bg-[#3a3b41] hover:text-white"
+        >
+          {canvasTheme === "light" ? <Sun size={14} /> : <Moon size={14} />}
+          <span className="hidden xl:inline">{canvasTheme === "light" ? "Light" : "Dark"}</span>
+        </button>
+        <button
+          onClick={zoomToFit}
+          title="Zoom to Fit (Ctrl+0)"
+          className="px-2.5 py-1.5 rounded flex items-center gap-1.5 text-xs tracking-wider uppercase font-semibold transition-colors border bg-transparent text-[#777] border-transparent hover:bg-[#3a3b41] hover:text-white"
+        >
+          <Maximize2 size={14} />
+          <span className="hidden xl:inline">Fit View</span>
+        </button>
+      </div>
+
+      <div className="h-4 w-px shrink-0 bg-[#333] mx-1" />
+
+      {/* Group 4: Color Picker & Swatches */}
+      <div className="flex items-center space-x-1.5 shrink-0 bg-[#1a1b1e] border border-[#333] px-2 py-1 rounded-md">
         <input
           type="color"
           value={activeColor}
@@ -518,18 +536,19 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
         })}
       </div>
 
-      <div className="flex-grow min-w-[4px]"></div>
+      <div className="h-4 w-px shrink-0 bg-[#333] mx-1 hidden lg:block" />
 
+      {/* Flat File Action Buttons */}
       {isTemplateMode ? (
         <>
           <button
-            className="px-3 py-1.5 text-xs uppercase font-semibold tracking-wider bg-transparent text-[#777] border border-transparent hover:text-white rounded hover:bg-[#3a3b41] transition-colors flex items-center gap-1.5 mr-2"
+            className="px-3 py-1.5 text-xs uppercase font-semibold tracking-wider bg-transparent text-[#777] border border-transparent hover:text-white rounded hover:bg-[#3a3b41] transition-colors flex items-center gap-1.5 shrink-0"
             onClick={onBack}
           >
             Cancel
           </button>
           <button
-            className="px-4 py-1.5 text-xs uppercase font-bold tracking-wider bg-[#4a90e2] text-white hover:bg-[#3a7fc2] rounded transition-colors flex items-center gap-1.5"
+            className="px-4 py-1.5 text-xs uppercase font-bold tracking-wider bg-[#4a90e2] text-white hover:bg-[#3a7fc2] rounded transition-colors flex items-center gap-1.5 shrink-0"
             onClick={() => window.dispatchEvent(new CustomEvent('save-template-intent'))}
           >
             <Save size={14} /> Save Template Details
@@ -546,7 +565,7 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
           />
 
           <button
-            className="px-3 py-1.5 text-xs uppercase font-semibold tracking-wider bg-transparent text-[#777] border border-transparent hover:text-white rounded hover:bg-[#3a3b41] transition-colors flex items-center gap-1.5"
+            className="px-3 py-1.5 text-xs uppercase font-semibold tracking-wider bg-transparent text-[#777] border border-transparent hover:text-white rounded hover:bg-[#3a3b41] transition-colors flex items-center gap-1.5 shrink-0"
             onClick={handleNewDrawing}
             title="New Drawing"
           >
@@ -554,7 +573,7 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
           </button>
 
           {/* Open Menu */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
               className="px-3 py-1.5 text-xs uppercase font-semibold tracking-wider bg-[#1e1f22] text-[#777] border border-[#333] hover:text-white rounded hover:bg-[#3a3b41] transition-colors flex items-center gap-1.5"
               onClick={(e) => {
@@ -592,7 +611,7 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
           </div>
 
           {/* Save Menu */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
               className="px-3 py-1.5 text-xs uppercase font-semibold tracking-wider bg-[#1e1f22] text-[#777] border border-[#333] hover:text-white rounded hover:bg-[#3a3b41] transition-colors flex items-center gap-1.5"
               onClick={(e) => {
@@ -645,21 +664,23 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
           </div>
 
           <button
-            className="px-3 py-1.5 text-xs uppercase font-semibold tracking-wider bg-transparent text-[#777] hover:text-white rounded hover:bg-[#3a3b41] transition-colors flex items-center gap-1.5"
+            className="px-3 py-1.5 text-xs uppercase font-semibold tracking-wider bg-transparent text-[#777] hover:text-white rounded hover:bg-[#3a3b41] transition-colors flex items-center gap-1.5 shrink-0"
             onClick={handleExportDxf}
             title="Export DXF"
           >
             <FileEdit size={14} /> <span className="hidden lg:inline">DXF</span>
           </button>
+          {userRole !== 'admin' && userRole !== 'staff' && (
+            <button
+              className="px-3 py-1.5 text-xs uppercase font-bold tracking-wider bg-[#16a34a] text-white hover:bg-[#15803d] rounded transition-colors flex items-center gap-1.5 shrink-0"
+              onClick={handleShowPrice}
+              title="Calculate drawing price"
+            >
+              <Calculator size={14} /> <span className="hidden md:inline">Show Price</span>
+            </button>
+          )}
           <button
-            className="px-3 py-1.5 text-xs uppercase font-bold tracking-wider bg-[#16a34a] text-white hover:bg-[#15803d] rounded transition-colors flex items-center gap-1.5"
-            onClick={handleShowPrice}
-            title="Calculate drawing price"
-          >
-            <Calculator size={14} /> <span className="hidden md:inline">Show Price</span>
-          </button>
-          <button
-            className="px-4 py-1.5 text-xs uppercase font-bold tracking-wider bg-[#4a90e2] text-white hover:bg-[#3a7fc2] rounded transition-colors flex items-center gap-1.5"
+            className="px-4 py-1.5 text-xs uppercase font-bold tracking-wider bg-[#4a90e2] text-white hover:bg-[#3a7fc2] rounded transition-colors flex items-center gap-1.5 shrink-0"
             onClick={handleExportPng}
             title="Export PNG"
           >

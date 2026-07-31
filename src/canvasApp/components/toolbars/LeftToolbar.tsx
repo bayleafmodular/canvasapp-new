@@ -41,6 +41,20 @@ function LeftToolbar() {
         display: none;
       }
     `}</style>
+
+    <button
+      title="Templates Library"
+      className={cn(
+        "w-10 h-10 rounded text-[#999] flex items-center justify-center transition-colors border shrink-0",
+        isTemplateDrawerOpen ? "bg-[#3a3b41] text-[#4a90e2] border-[#4a90e2]" : "border-transparent hover:bg-[#3a3b41] hover:text-white"
+      )}
+      onClick={() => setTemplateDrawerOpen(!isTemplateDrawerOpen)}
+    >
+      <LayoutTemplate size={20} strokeWidth={isTemplateDrawerOpen ? 2 : 1.5} />
+    </button>
+
+    <div className="h-px bg-[#333] w-full my-1 shrink-0" />
+
     {toolButtons.map((tb: any, idx) => {
       if (tb.divider) {
         return <div key={`divider-${idx}`} className="h-px bg-[#333] w-full my-1" />;
@@ -68,19 +82,6 @@ function LeftToolbar() {
       onClick={deleteSelected}
     >
       <Trash2 size={20} strokeWidth={1.5} />
-    </button>
-
-    <div className="h-px bg-[#333] w-full my-1" />
-
-    <button
-      title="Templates Library"
-      className={cn(
-        "w-10 h-10 rounded text-[#999] flex items-center justify-center transition-colors border",
-        isTemplateDrawerOpen ? "bg-[#3a3b41] text-[#4a90e2] border-[#4a90e2]" : "border-transparent hover:bg-[#3a3b41] hover:text-white"
-      )}
-      onClick={() => setTemplateDrawerOpen(!isTemplateDrawerOpen)}
-    >
-      <LayoutTemplate size={20} strokeWidth={isTemplateDrawerOpen ? 2 : 1.5} />
     </button>
   </div>;
 }

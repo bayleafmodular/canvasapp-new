@@ -337,7 +337,7 @@ function CustomDrawingRenderer({ objects, lightMode }: { objects: any[]; lightMo
                     y={Math.min(0, obj.height)}
                     width={Math.abs(obj.width)}
                     height={Math.abs(obj.height)}
-                    fill="none"
+                    fill={obj.fill || "none"}
                     stroke={stroke}
                     strokeWidth={strokeWidth}
                   />
@@ -353,7 +353,7 @@ function CustomDrawingRenderer({ objects, lightMode }: { objects: any[]; lightMo
                   cx={0}
                   cy={0}
                   r={obj.radius}
-                  fill="none"
+                  fill={obj.fill || "none"}
                   stroke={stroke}
                   strokeWidth={strokeWidth}
                 />

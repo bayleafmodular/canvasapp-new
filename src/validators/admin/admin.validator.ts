@@ -26,5 +26,5 @@ export const updateStaffSchema = z.object({
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>;
-export type CreateStaffInput = z.infer<typeof createStaffSchema>;
+export type CreateStaffInput = z.infer<typeof createStaffSchema>
 export type UpdateStaffInput = z.infer<typeof updateStaffSchema>;

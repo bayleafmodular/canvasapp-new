@@ -371,20 +371,59 @@ function RightSidebar() {
               </div>
               
               {selectedObjects[0].type !== ShapeType.ANNOTATION && (
-                <div>
-                  <label className="text-[#555] block mb-1">Color</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="color"
-                      value={selectedObjects[0].stroke}
-                      onChange={(e) => {
-                        updateObject(selectedObjects[0].id, { stroke: e.target.value });
-                        commitHistory();
-                      }}
-                      className="w-5 h-5 p-0 border border-[#444] rounded cursor-pointer bg-transparent"
-                    />
-                    <span className="text-white uppercase">{selectedObjects[0].stroke}</span>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[#555] block mb-1">Border Color</label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="color"
+                        value={selectedObjects[0].stroke}
+                        onChange={(e) => {
+                          updateObject(selectedObjects[0].id, { stroke: e.target.value });
+                          commitHistory();
+                        }}
+                        className="w-5 h-5 p-0 border border-[#444] rounded cursor-pointer bg-transparent"
+                      />
+                      <span className="text-white uppercase text-xs font-mono">{selectedObjects[0].stroke}</span>
+                    </div>
                   </div>
+
+                  {(selectedObjects[0].type === ShapeType.RECTANGLE || selectedObjects[0].type === ShapeType.CIRCLE) && (
+                    <div>
+                      <label className="text-[#555] block mb-1">Fill Color</label>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="color"
+                          value={selectedObjects[0].fill && selectedObjects[0].fill !== "transparent" ? selectedObjects[0].fill : "#ffffff"}
+                          disabled={!selectedObjects[0].fill || selectedObjects[0].fill === "transparent"}
+                          onChange={(e) => {
+                            updateObject(selectedObjects[0].id, { fill: e.target.value });
+                            commitHistory();
+                          }}
+                          className={`w-5 h-5 p-0 border border-[#444] rounded cursor-pointer bg-transparent ${
+                            (!selectedObjects[0].fill || selectedObjects[0].fill === "transparent") ? "opacity-30 cursor-not-allowed" : ""
+                          }`}
+                        />
+                        <button
+                          onClick={() => {
+                            const isFilled = selectedObjects[0].fill && selectedObjects[0].fill !== "transparent";
+                            updateObject(selectedObjects[0].id, { fill: isFilled ? "transparent" : "#ffffff" });
+                            commitHistory();
+                          }}
+                          className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${
+                            selectedObjects[0].fill && selectedObjects[0].fill !== "transparent"
+                              ? "bg-red-900/40 text-red-400 border border-red-500/30 hover:bg-red-900/60"
+                              : "bg-indigo-900/40 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-900/60"
+                          }`}
+                        >
+                          {selectedObjects[0].fill && selectedObjects[0].fill !== "transparent" ? "Remove Fill" : "Apply Fill"}
+                        </button>
+                        {selectedObjects[0].fill && selectedObjects[0].fill !== "transparent" && (
+                          <span className="text-white uppercase text-xs font-mono">{selectedObjects[0].fill}</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div> : <div className="text-[#999]">{selectedObjects.length} objects selected</div>}

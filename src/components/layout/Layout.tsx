@@ -9,6 +9,7 @@ import { useCadStore }  from '@/store/useCadStore';
 
 export default function Layout({ children, fullScreen = false }: { children: React.ReactNode; fullScreen?: boolean }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [user, setUser] = useState(() => {
     try {
       const cachedUser = localStorage.getItem('user');
@@ -73,6 +74,8 @@ export default function Layout({ children, fullScreen = false }: { children: Rea
         permissions={user?.permissions}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        isCollapsed={sidebarCollapsed}
+        onCollapseToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">

@@ -1046,7 +1046,7 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
                           />
                         </div>
                         <span className="absolute top-4 right-4 bg-slate-100 border border-gray-200 text-slate-500 text-[8px] font-bold px-2 py-0.5 rounded">
-                          TAB SHEET: {panel.name}
+                          Panel: {panel.name}
                         </span>
                       </div>
 

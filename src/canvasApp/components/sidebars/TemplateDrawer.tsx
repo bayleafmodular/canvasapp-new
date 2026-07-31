@@ -168,10 +168,19 @@ export function TemplateDrawer() {
     return grouped;
   }, [searchQuery, templatesList]);
 
-  if (!isTemplateDrawerOpen) return null;
-
   return (
-    <div className="absolute left-0 top-0 bottom-0 w-80 bg-[#1e1f22] border-r border-[#333] flex flex-col z-20 shadow-2xl overflow-hidden h-full">
+    <>
+      <div 
+        className={cn(
+          "absolute inset-0 bg-black/40 z-10 lg:hidden transition-opacity duration-300 ease-in-out",
+          isTemplateDrawerOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        )}
+        onClick={() => setTemplateDrawerOpen(false)}
+      />
+      <div className={cn(
+        "absolute left-0 top-0 bottom-0 w-80 bg-[#1e1f22] border-r border-[#333] flex flex-col z-20 shadow-2xl overflow-hidden h-full transition-transform duration-300 ease-in-out",
+        isTemplateDrawerOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-[#333] shrink-0 bg-[#25262b]">
         <div className="flex items-center gap-2 text-white">
@@ -303,6 +312,7 @@ export function TemplateDrawer() {
           })
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

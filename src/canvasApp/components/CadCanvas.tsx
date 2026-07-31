@@ -38,16 +38,19 @@ function CadCanvas() {
   const [selectionBounds, setSelectionBounds] = useState<any>(null);
 
   useEffect(() => {
-    const handleResize = () => {
-      if (containerRef.current) {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (let entry of entries) {
         setDimensions({
-          width: containerRef.current.clientWidth,
-          height: containerRef.current.clientHeight
+          width: entry.contentRect.width,
+          height: entry.contentRect.height
         });
       }
-    };
-    handleResize();
-    window.addEventListener("resize", handleResize);
+    });
+    resizeObserver.observe(container);
+
     const handleExport = () => {
       if (stageRef.current) {
         const dataUrl = stageRef.current.toDataURL({ pixelRatio: 2 });
@@ -60,6 +63,7 @@ function CadCanvas() {
       }
     };
     window.addEventListener("export-png", handleExport);
+
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       if (
@@ -75,18 +79,86 @@ function CadCanvas() {
         return;
       }
       const isMod = e.ctrlKey || e.metaKey;
+      const store = useCadStore.getState();
+
       if (isMod && (e.key === "0" || e.code === "Digit0" || e.code === "Numpad0")) {
         e.preventDefault();
-        useCadStore.getState().zoomToFit();
+        store.zoomToFit();
+      } else if (e.key === "Delete" || e.key === "Backspace") {
+        store.deleteSelected();
+      } else if (isMod && (e.key === "z" || e.code === "KeyZ")) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          store.redo();
+        } else {
+          store.undo();
+        }
+      } else if (isMod && (e.key === "y" || e.code === "KeyY")) {
+        e.preventDefault();
+        store.redo();
+      } else if (isMod && (e.key === "c" || e.code === "KeyC")) {
+        e.preventDefault();
+        store.copyObjects();
+      } else if (isMod && (e.key === "v" || e.code === "KeyV")) {
+        e.preventDefault();
+        store.pasteObjects();
+      } else if (isMod && (e.key === "x" || e.code === "KeyX")) {
+        e.preventDefault();
+        store.cutObjects();
+      } else if (isMod && (e.key === "d" || e.code === "KeyD")) {
+        e.preventDefault();
+        store.duplicateObjects();
+      } else if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+        const key = e.key.toLowerCase();
+        switch (key) {
+          case "v":
+            store.setTool(Tool.SELECT);
+            break;
+          case "h":
+            store.setTool(Tool.HAND);
+            break;
+          case "l":
+            store.setTool(Tool.LINE);
+            break;
+          case "p":
+            store.setTool(Tool.POLYLINE);
+            break;
+          case "w":
+            store.setTool(Tool.WALL);
+            break;
+          case "b":
+            store.setTool(Tool.BEAM);
+            break;
+          case "u":
+            store.setTool(Tool.LINTEL);
+            break;
+          case "r":
+            store.setTool(Tool.RECTANGLE);
+            break;
+          case "c":
+            store.setTool(Tool.CIRCLE);
+            break;
+          case "a":
+            store.setTool(Tool.ARC);
+            break;
+          case "f":
+            store.setTool(Tool.FREE_DRAW);
+            break;
+          case "t":
+            store.setTool(Tool.ANNOTATION);
+            break;
+        }
       }
     };
     window.addEventListener("keydown", handleGlobalKeyDown);
+
     return () => {
-      window.removeEventListener("resize", handleResize);
+      resizeObserver.disconnect();
       window.removeEventListener("export-png", handleExport);
       window.removeEventListener("keydown", handleGlobalKeyDown);
     };
   }, []);
+
   useEffect(() => {
     if (activeTool === Tool.SELECT && selectedIds.length > 0) {
       if (trRef.current && stageRef.current) {
@@ -145,15 +217,64 @@ function CadCanvas() {
       let closestSnap = null;
       let minDistance = SNAP_THRESHOLD / stageScale;
       objects.forEach((obj) => {
-        if ((obj.type === ShapeType.LINE || obj.type === ShapeType.POLYLINE) && obj.points) {
+        const ox = obj.x || 0;
+        const oy = obj.y || 0;
+
+        // 1. Snapping to vertices/endpoints of Line, Polyline, Wall, Beam, Lintel
+        if (
+          (obj.type === ShapeType.LINE ||
+            obj.type === ShapeType.POLYLINE ||
+            obj.type === ShapeType.WALL ||
+            obj.type === ShapeType.BEAM ||
+            obj.type === ShapeType.LINTEL) &&
+          obj.points
+        ) {
           for (let i = 0; i < obj.points.length; i += 2) {
-            const pt = { x: obj.points[i], y: obj.points[i + 1] };
+            const pt = { x: obj.points[i] + ox, y: obj.points[i + 1] + oy };
             const dist = getDistance(finalPos, pt);
             if (dist < minDistance) {
               minDistance = dist;
               closestSnap = pt;
             }
           }
+        }
+
+        // 2. Snapping to corners of Rectangles
+        if (obj.type === ShapeType.RECTANGLE) {
+          const w = obj.width || 0;
+          const h = obj.height || 0;
+          const corners = [
+            { x: ox, y: oy },
+            { x: ox + w, y: oy },
+            { x: ox, y: oy + h },
+            { x: ox + w, y: oy + h }
+          ];
+          corners.forEach((pt) => {
+            const dist = getDistance(finalPos, pt);
+            if (dist < minDistance) {
+              minDistance = dist;
+              closestSnap = pt;
+            }
+          });
+        }
+
+        // 3. Snapping to center/quadrants of Circles
+        if (obj.type === ShapeType.CIRCLE) {
+          const r = obj.radius || 0;
+          const centers = [
+            { x: ox, y: oy },
+            { x: ox - r, y: oy },
+            { x: ox + r, y: oy },
+            { x: ox, y: oy - r },
+            { x: ox, y: oy + r }
+          ];
+          centers.forEach((pt) => {
+            const dist = getDistance(finalPos, pt);
+            if (dist < minDistance) {
+              minDistance = dist;
+              closestSnap = pt;
+            }
+          });
         }
       });
       if (closestSnap) {
@@ -819,10 +940,10 @@ function CadCanvas() {
           renderedShape = <Line {...commonProps} x={obj.x} y={obj.y} points={obj.points} lineCap="round" lineJoin="round" tension={0.5} />;
           break;
         case ShapeType.RECTANGLE:
-          renderedShape = <Rect {...commonProps} x={obj.x} y={obj.y} width={obj.width} height={obj.height} />;
+          renderedShape = <Rect {...commonProps} x={obj.x} y={obj.y} width={obj.width} height={obj.height} fill={obj.fill} />;
           break;
         case ShapeType.CIRCLE:
-          renderedShape = <Circle {...commonProps} x={obj.x} y={obj.y} radius={obj.radius} />;
+          renderedShape = <Circle {...commonProps} x={obj.x} y={obj.y} radius={obj.radius} fill={obj.fill} />;
           break;
         case ShapeType.ARC:
           renderedShape = <Arc {...commonProps} x={obj.x} y={obj.y} innerRadius={obj.radius} outerRadius={obj.radius} rotation={obj.rotation} angle={obj.endAngle} />;
