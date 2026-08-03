@@ -7,7 +7,7 @@ import Link from 'next/link';
 
 import Layout from '@/components/layout/Layout';
 import { getTemplates, deleteTemplate, updateTemplate } from '@/services/templateApi';
-import { Plus, Search, Filter, MoreVertical, Edit2, Eye, EyeOff, Trash2, LayoutTemplate } from 'lucide-react';
+import { Plus, Search, Filter, MoreVertical, Edit2, Eye, EyeOff, Trash2, LayoutTemplate, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import TemplatePreview from '@/components/TemplatePreview';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
@@ -30,17 +30,28 @@ function ManageTemplates_Inner() {
   const [isDeleting, setIsDeleting] = useState(false);
   const navigate = useNavigate();
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [categories, setCategories] = useState<string[]>([]);
+
   const role = localStorage.getItem('role');
   const permissions = getPermissions();
   const canCreate = role === 'admin' || permissions['templates.create'];
   const canEdit = role === 'admin' || permissions['templates.edit'];
 
   const loadTemplates = async () => {
-    // Only set loading state if not already loading
-    setLoading(prev => prev ? prev : true);
+    setLoading(true);
     try {
-      const res = await getTemplates();
-      setTemplates(res.data);
+      const res = await getTemplates({
+        page: currentPage,
+        limit: 10,
+        search: searchQuery,
+        status: statusFilter,
+        category: categoryFilter
+      });
+      setTemplates(res.data || []);
+      setTotalCount(res.total || 0);
+      setCategories(res.categories || []);
     } catch (err: any) {
       toast.error('Failed to load templates');
     } finally {
@@ -50,7 +61,7 @@ function ManageTemplates_Inner() {
 
   useEffect(() => {
     loadTemplates();
-  }, []);
+  }, [currentPage, searchQuery, statusFilter, categoryFilter]);
 
   const handleToggleStatus = async (template: any) => {
     const newStatus = template.status === 'active' ? 'hidden' : 'active';
@@ -82,20 +93,9 @@ function ManageTemplates_Inner() {
     }
   };
 
-  const filteredTemplates = useMemo(() => {
-    return templates.filter(t => {
-      const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (t.description && t.description.toLowerCase().includes(searchQuery.toLowerCase()));
-      const matchesStatus = statusFilter === 'all' || t.status === statusFilter;
-      const matchesCategory = categoryFilter === 'all' || (t.category || 'Uncategorized').toLowerCase() === categoryFilter.toLowerCase();
-      return matchesSearch && matchesStatus && matchesCategory;
-    });
-  }, [templates, searchQuery, statusFilter, categoryFilter]);
-
-  const uniqueCategories = useMemo(() => {
-    const cats = new Set(templates.map(t => t.category || 'Uncategorized'));
-    return Array.from(cats);
-  }, [templates]);
+  const filteredTemplates = templates;
+  const uniqueCategories = categories;
+  const totalPages = Math.ceil(totalCount / 10) || 1;
 
   return (
     <Layout>
@@ -124,14 +124,14 @@ function ManageTemplates_Inner() {
               type="text"
               placeholder="Search templates..."
               value={searchQuery}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             />
           </div>
           <div className="flex gap-4 w-full md:w-auto">
             <select
               value={categoryFilter}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCategoryFilter(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
               className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 w-full md:w-40"
             >
               <option value="all">All Categories</option>
@@ -141,7 +141,7 @@ function ManageTemplates_Inner() {
             </select>
             <select
               value={statusFilter}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatusFilter(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
               className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 w-full md:w-40"
             >
               <option value="all">All Statuses</option>
@@ -173,8 +173,10 @@ function ManageTemplates_Inner() {
                   </tr>
                 ) : filteredTemplates.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-8 text-center text-gray-400">
-                      No templates found matching your criteria.
+                    <td colSpan={7} className="px-6 py-8 text-center text-gray-400 font-medium">
+                      {searchQuery || (categoryFilter && categoryFilter !== 'all') || (statusFilter && statusFilter !== 'all')
+                        ? "No templates found matching your criteria."
+                        : "No templates found."}
                     </td>
                   </tr>
                 ) : (
@@ -279,6 +281,30 @@ function ManageTemplates_Inner() {
               </tbody>
             </table>
           </div>
+          {/* Pagination footer */}
+          {totalPages > 1 && (
+            <div className="bg-white px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+              <span className="text-xs text-gray-400 font-medium">
+                Showing Page <span className="font-bold text-gray-700">{currentPage}</span> of <span className="font-bold text-gray-700">{totalPages}</span> ({totalCount} total templates)
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

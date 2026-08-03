@@ -1,43 +1,43 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Search, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import OrderStatusBadge from './OrderStatusBadge';
 
-export default function OrderTable({ orders, loading, error, isAdmin, onView }: { orders: any[]; loading: boolean; error: any; isAdmin: boolean; onView: (order: any) => void }) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-
-  const filteredOrders = useMemo(() => {
-    return orders.filter((order: any) => {
-      const id = order.id || '';
-      const customerName = order.customerName || '';
-      const email = order.email || '';
-      const productName = order.productName || '';
-      const status = order.status || '';
-
-      const matchesSearch =
-        id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        productName.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchesStatus = statusFilter === 'all' || status === statusFilter;
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [orders, searchTerm, statusFilter]);
-
-  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage) || 1;
-  const paginatedOrders = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredOrders.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredOrders, currentPage]);
+export default function OrderTable({ 
+  orders, 
+  loading, 
+  error, 
+  isAdmin, 
+  onView,
+  totalCount,
+  currentPage,
+  searchTerm,
+  statusFilter,
+  onPageChange,
+  onSearchChange,
+  onStatusFilterChange,
+  itemsPerPage = 10
+}: { 
+  orders: any[]; 
+  loading: boolean; 
+  error: any; 
+  isAdmin: boolean; 
+  onView: (order: any) => void;
+  totalCount: number;
+  currentPage: number;
+  searchTerm: string;
+  statusFilter: string;
+  onPageChange: (page: number) => void;
+  onSearchChange: (search: string) => void;
+  onStatusFilterChange: (status: string) => void;
+  itemsPerPage?: number;
+}) {
+  const totalPages = Math.ceil(totalCount / itemsPerPage) || 1;
 
   const formatPrice = (price: any) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
+      currencyDisplay: 'narrowSymbol',
     }).format(price);
   };
 
@@ -59,7 +59,7 @@ export default function OrderTable({ orders, loading, error, isAdmin, onView }: 
           <input
             type="search"
             value={searchTerm}
-            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+            onChange={(e) => onSearchChange(e.target.value)}
             placeholder={isAdmin ? "Search by Order ID, customer, email..." : "Search by Order ID, title..."}
             className="w-full rounded-lg border border-gray-200 py-2 pl-10 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
@@ -69,7 +69,7 @@ export default function OrderTable({ orders, loading, error, isAdmin, onView }: 
           <span className="text-sm text-gray-500 font-medium whitespace-nowrap">Status:</span>
           <select
             value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+            onChange={(e) => onStatusFilterChange(e.target.value)}
             className="w-full md:w-44 rounded-lg border border-gray-200 py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
           >
             <option value="all">All Orders</option>
@@ -119,14 +119,16 @@ export default function OrderTable({ orders, loading, error, isAdmin, onView }: 
                     {error}
                   </td>
                 </tr>
-              ) : paginatedOrders.length === 0 ? (
+              ) : orders.length === 0 ? (
                 <tr>
                   <td colSpan={isAdmin ? 7 : 6} className="px-6 py-10 text-center text-gray-400 font-medium">
-                    {orders.length === 0 ? "You have no orders yet." : "No orders matched your search filters."}
+                    {searchTerm || (statusFilter && statusFilter !== 'all')
+                      ? "No orders matched your search filters."
+                      : "No orders found."}
                   </td>
                 </tr>
               ) : (
-                paginatedOrders.map((order: any) => (
+                orders.map((order: any) => (
                   <tr key={order.id} className="hover:bg-gray-50/40 transition-colors">
                     <td className="px-6 py-4 font-mono font-semibold text-gray-800">{order.id}</td>
                     {isAdmin ? (
@@ -167,18 +169,18 @@ export default function OrderTable({ orders, loading, error, isAdmin, onView }: 
         {totalPages > 1 && (
           <div className="bg-white px-6 py-4 border-t border-gray-50 flex items-center justify-between">
             <span className="text-xs text-gray-400">
-              Showing Page <span className="font-bold text-gray-700">{currentPage}</span> of <span className="font-bold text-gray-700">{totalPages}</span> ({filteredOrders.length} total orders)
+              Showing Page <span className="font-bold text-gray-700">{currentPage}</span> of <span className="font-bold text-gray-700">{totalPages}</span> ({totalCount} total orders)
             </span>
             <div className="flex gap-2">
               <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
                 disabled={currentPage === 1}
                 className="p-1.5 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronLeft size={16} />
               </button>
               <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
                 disabled={currentPage === totalPages}
                 className="p-1.5 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >

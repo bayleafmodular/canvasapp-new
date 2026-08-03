@@ -6,8 +6,21 @@ import { createTemplateSchema } from '@/validators/templates/template.validator'
 export async function GET(request: Request) {
   try {
     await authenticateRequest(request);
-    const templates = await TemplateService.listTemplates();
-    return NextResponse.json({ data: templates }, { status: 200 });
+    const { searchParams } = new URL(request.url);
+    const page = searchParams.get('page') ? parseInt(searchParams.get('page') || '1', 10) : undefined;
+    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit') || '10', 10) : undefined;
+    const search = searchParams.get('search') || undefined;
+    const status = searchParams.get('status') || undefined;
+    const category = searchParams.get('category') || undefined;
+
+    const result = await TemplateService.listTemplates({ page, limit, search, status, category });
+    
+    // For backward compatibility: if page and limit are not provided, return the list directly in { data }
+    if (page === undefined && limit === undefined) {
+      return NextResponse.json({ data: result.data }, { status: 200 });
+    }
+    
+    return NextResponse.json(result, { status: 200 });
   } catch (err: any) {
     console.error('List Templates API Error:', err);
     if (err instanceof AuthError) {

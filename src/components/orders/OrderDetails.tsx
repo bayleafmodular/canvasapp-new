@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-  X, User, Phone, MapPin, Calendar, ZoomIn, ZoomOut, Maximize2, 
+import {
+  X, User, Phone, MapPin, Calendar, ZoomIn, ZoomOut, Maximize2,
   ChevronLeft, FileText, LayoutGrid, MessageSquare, Clock, ShieldAlert,
   CheckCircle2, AlertCircle, PlayCircle, ClipboardCheck, Printer, Sun, Moon
 } from 'lucide-react';
 import OrderStatusBadge from './OrderStatusBadge';
 import BlueprintDrawing from './BlueprintDrawing';
-import { calculateDrawingPrice }  from '@/utils/pricing';
+import { calculateDrawingPrice } from '@/utils/pricing';
+import { getPricingSettings } from '@/services/api';
 
 interface StandardizedPanel {
   id: string;
@@ -23,6 +24,23 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
   const [remarks, setRemarks] = useState(order.remarks || '');
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  const [pricing, setPricing] = useState<any>(null);
+  const [pricingLoading, setPricingLoading] = useState(true);
+
+  useEffect(() => {
+    setPricingLoading(true);
+    getPricingSettings()
+      .then((res) => {
+        setPricing(res.data);
+      })
+      .catch((err) => {
+        console.error("Failed to load pricing settings", err);
+      })
+      .finally(() => {
+        setPricingLoading(false);
+      });
+  }, []);
 
   // Helper to parse annotation text
   const getAnnotationInfo = (panelObjects: any[]) => {
@@ -106,6 +124,11 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
     return [];
   }, [order.drawingData]);
 
+  const priceResult = useMemo(() => {
+    if (!pricing || !order.drawingData) return null;
+    return calculateDrawingPrice(standardizedPanels.flatMap((p) => p.objects || []), pricing);
+  }, [pricing, standardizedPanels]);
+
   // Aggregate panel counts by color/material
   const aggregatedPanelCounts = useMemo(() => {
     const counts: { [key: string]: number } = {};
@@ -123,7 +146,7 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
     standardizedPanels.forEach((p) => {
       const dims = getPanelDimensions(p.objects);
       const info = getAnnotationInfo(p.objects);
-      
+
       let sheetSize = '4000×1250';
       if (dims.width <= 2500 && dims.height <= 1250) {
         sheetSize = '2500×1250';
@@ -134,7 +157,7 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
       } else if (dims.width <= 4000 && dims.height <= 1575) {
         sheetSize = '4000×1575';
       }
-      
+
       if (!groups[sheetSize]) {
         groups[sheetSize] = [];
       }
@@ -146,46 +169,46 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
 
   // Dynamic notes/fabrication checklists states derived from actual drawing data
   const hasStiffeners = useMemo(() => {
-    return standardizedPanels.some(p => 
-      p.objects.some(obj => 
-        obj.type === 'stiffener' || 
+    return standardizedPanels.some(p =>
+      p.objects.some(obj =>
+        obj.type === 'stiffener' ||
         (obj.text && obj.text.toLowerCase().includes('stiffener'))
       )
     );
   }, [standardizedPanels]);
 
   const hasWeepHoles = useMemo(() => {
-    return standardizedPanels.some(p => 
-      p.objects.some(obj => 
-        obj.type === 'weep_hole' || 
+    return standardizedPanels.some(p =>
+      p.objects.some(obj =>
+        obj.type === 'weep_hole' ||
         (obj.text && obj.text.toLowerCase().includes('weep'))
       )
     );
   }, [standardizedPanels]);
 
   const hasAdheseal = useMemo(() => {
-    return standardizedPanels.some(p => 
+    return standardizedPanels.some(p =>
       p.objects.some(obj => obj.text && obj.text.toLowerCase().includes('adheseal'))
     );
   }, [standardizedPanels]);
 
   const hasTremco = useMemo(() => {
-    return standardizedPanels.some(p => 
+    return standardizedPanels.some(p =>
       p.objects.some(obj => obj.text && obj.text.toLowerCase().includes('tremco'))
     );
   }, [standardizedPanels]);
 
   const hasArrowDirection = useMemo(() => {
-    return standardizedPanels.some(p => 
-      p.objects.some(obj => 
-        obj.type === 'arrow' || 
+    return standardizedPanels.some(p =>
+      p.objects.some(obj =>
+        obj.type === 'arrow' ||
         (obj.type === 'line' && obj.points && obj.points.length > 4)
       )
     );
   }, [standardizedPanels]);
 
   const hasTagLayout = useMemo(() => {
-    return standardizedPanels.some(p => 
+    return standardizedPanels.some(p =>
       p.objects.some(obj => obj.type === 'annotation' || obj.type === 'ANNOTATION')
     );
   }, [standardizedPanels]);
@@ -213,9 +236,9 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
   const handleSavePDF = async () => {
     const element = document.getElementById('invoice-print-container');
     if (!element) return;
-    
+
     setIsGeneratingPDF(true);
-    
+
     try {
       const html2canvas = (await import('html2canvas-pro')).default;
       const { jsPDF } = await import('jspdf');
@@ -227,7 +250,7 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
       });
 
       const pages = element.querySelectorAll('.pdf-page-container');
-      
+
       for (let i = 0; i < pages.length; i++) {
         const pageEl = pages[i] as HTMLElement;
         const canvas = await html2canvas(pageEl, {
@@ -251,10 +274,16 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
     }
   };
   const formatPrice = (price: any) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
+    const currency = pricing?.currency || 'USD';
+    try {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency,
+        currencyDisplay: 'narrowSymbol',
+      }).format(price);
+    } catch {
+      return `${currency} ${Number(price || 0).toFixed(2)}`;
+    }
   };
 
   const formatDate = (dateStr: any) => {
@@ -271,13 +300,13 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
   // Determine status history checklist
   const getStatusHistory = () => {
     const history: any[] = [
-      { 
-        status: 'Pending', 
-        label: 'Order Placed', 
+      {
+        status: 'Pending',
+        label: 'Order Placed',
         description: 'Your blueprint order has been successfully placed.',
         date: order.orderDate || order.createdAt,
         active: true,
-        done: true 
+        done: true
       }
     ];
 
@@ -384,10 +413,10 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
 
       {/* Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        
+
         {/* Left Column: Metadata & Remarks */}
         <div className="lg:col-span-2 space-y-6">
-          
+
           {/* Customer info */}
           <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 space-y-4">
             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
@@ -441,6 +470,31 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
                   </span>
                 </div>
               </div>
+
+              {/* Pricing breakdown details */}
+              {pricingLoading ? (
+                <div className="pt-3 border-t border-gray-100 text-xs text-gray-400 italic">
+                  Loading price details...
+                </div>
+              ) : priceResult && priceResult.items && priceResult.items.length > 0 ? (
+                <div className="pt-3 border-t border-gray-100 space-y-2.5">
+                  <span className="text-gray-400 block text-[10px] font-bold uppercase tracking-wider">Price Breakdown</span>
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
+                    {priceResult.items.map((item: any) => (
+                      <div key={item.key} className="flex justify-between items-center text-xs border-b border-gray-50 pb-1.5 last:border-0 last:pb-0">
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-gray-700">{item.label}</span>
+                          <span className="text-gray-400 text-[10px] mt-0.5">
+                            {item.quantity.toFixed(2)} {item.unit} × {formatPrice(item.rate)}
+                          </span>
+                        </div>
+                        <span className="font-bold text-gray-800">{formatPrice(item.total)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               <div className="pt-2 border-t border-gray-50 flex justify-between items-center">
                 <span className="text-sm font-bold text-gray-800">Total Price</span>
                 <span className="text-lg font-extrabold text-indigo-600">{formatPrice(order.totalPrice)}</span>
@@ -454,7 +508,7 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
               <MessageSquare size={16} className="text-indigo-500" /> Reviewer Remarks
             </h3>
-            
+
             {isAdmin ? (
               <div className="space-y-3">
                 <textarea
@@ -494,7 +548,7 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
               <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
                 <Clock size={16} className="text-indigo-500" /> Tracking Timeline
               </h3>
-              
+
               <div className="relative border-l-2 border-gray-100 ml-3.5 pl-6 space-y-6">
                 {historySteps.map((step, idx) => {
                   let iconBg = 'bg-gray-100 text-gray-400';
@@ -519,7 +573,7 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
                       <span className={`absolute -left-[35px] top-0.5 w-6 h-6 rounded-full flex items-center justify-center ring-4 ring-white ${iconBg}`}>
                         {icon}
                       </span>
-                      
+
                       <div className="flex flex-col">
                         <span className={`text-sm font-bold ${step.done ? 'text-gray-800' : 'text-gray-400'}`}>
                           {step.label}
@@ -545,7 +599,7 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
         {/* Right Column: CAD/Design Preview */}
         <div className="lg:col-span-3">
           <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden h-full flex flex-col">
-            
+
             {/* Drawing Toolbar */}
             <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between sm:items-center gap-3 bg-gray-50">
               <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2 whitespace-nowrap">
@@ -590,11 +644,13 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
 
             {/* SVG Drawing Area */}
             <div className={`flex-1 min-h-[350px] relative overflow-hidden transition-colors duration-200 ${adminLightMode ? "bg-white border-t border-gray-100" : "bg-slate-950"}`}>
-              <div
-                className="w-full h-full absolute inset-0 transition-transform duration-200"
-                style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'center' }}
-              >
-                <BlueprintDrawing type={order.blueprintType} drawingData={order.drawingData} lightMode={adminLightMode} />
+              <div className="w-full h-full absolute inset-0">
+                <BlueprintDrawing
+                  type={order.blueprintType}
+                  drawingData={order.drawingData}
+                  lightMode={adminLightMode}
+                  zoomLevel={zoomLevel}
+                />
               </div>
             </div>
 
@@ -650,11 +706,13 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
               </button>
             </div>
 
-            <div
-              className="w-full h-full absolute inset-0 transition-transform duration-200"
-              style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'center' }}
-            >
-              <BlueprintDrawing type={order.blueprintType} drawingData={order.drawingData} lightMode={adminLightMode} />
+            <div className="w-full h-full absolute inset-0">
+              <BlueprintDrawing
+                type={order.blueprintType}
+                drawingData={order.drawingData}
+                lightMode={adminLightMode}
+                zoomLevel={zoomLevel}
+              />
             </div>
           </div>
         </div>,
@@ -665,7 +723,7 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
       {isPrintModalOpen && createPortal(
         <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overflow-y-auto select-text">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            
+
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900 text-white shrink-0">
               <div>
@@ -689,7 +747,7 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
                   ) : (
                     <>
                       <Printer size={14} />
-                      <span>Save PDF</span>
+                      <span>Download PDF</span>
                     </>
                   )}
                 </button>
@@ -706,10 +764,10 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
 
             {/* Modal Body */}
             <div className="flex-1 overflow-y-auto p-6 bg-slate-950 flex justify-center">
-              
+
               {/* Paper Print Box target */}
-              <div 
-                id="invoice-print-container" 
+              <div
+                id="invoice-print-container"
                 className="bg-transparent text-black font-sans text-xs flex flex-col items-center select-text"
               >
                 <style>{`
@@ -1014,7 +1072,7 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
                   const info = getAnnotationInfo(panel.objects);
                   const dims = getPanelDimensions(panel.objects);
                   const pageNo = idx + 3;
-                  
+
                   return (
                     <div key={panel.id} className="pdf-page-container">
                       {/* Panel Sheet Header */}
@@ -1038,10 +1096,10 @@ export default function OrderDetails({ order, isAdmin, onBack, onStatusChange, u
                       {/* SVG Canvas Renderer Box */}
                       <div className="flex-1 bg-white border border-gray-200 rounded-lg my-4 flex items-center justify-center p-6 relative">
                         <div className="w-full h-full max-h-[360px] flex items-center justify-center overflow-hidden">
-                          <BlueprintDrawing 
-                            type="custom_drawing" 
-                            drawingData={[panel]} 
-                            lightMode={true} 
+                          <BlueprintDrawing
+                            type="custom_drawing"
+                            drawingData={[panel]}
+                            lightMode={true}
                             hideTabs={true}
                           />
                         </div>

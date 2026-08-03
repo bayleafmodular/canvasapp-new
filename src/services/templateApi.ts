@@ -6,10 +6,10 @@ import {
   deleteAdminTemplate
 } from './api';
 
-export const getTemplates = async () => {
-  const res = await getAdminTemplates();
+export const getTemplates = async (params?: any) => {
+  const res = await getAdminTemplates(params);
   // Filter out deleted templates is now handled by the backend, but we just return res
-  return res.data; // api.js returns axios response, backend returns { data: [...] }
+  return res.data; // api.js returns axios response, backend returns { data: [...] } or { data: [...], total: ... }
 };
 
 export const getTemplateById = async (id: string) => {

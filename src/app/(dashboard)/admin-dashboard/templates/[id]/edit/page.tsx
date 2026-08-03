@@ -1,6 +1,7 @@
 "use client";
 import PrivateRoute from '@/components/PrivateRoute';
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useRouter as useNavigate } from 'next/navigation';
 
 import Layout from '@/components/layout/Layout';
@@ -51,6 +52,11 @@ function TemplateEditor_Inner() {
   const [loading, setLoading] = useState(!!id);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Template Metadata state
   const [templateMeta, setTemplateMeta] = useState({
@@ -213,7 +219,7 @@ function TemplateEditor_Inner() {
       <CadApp isTemplateMode={true} onBack={() => navigate.push('/admin-dashboard/templates')} />
 
       {/* Save Metadata Modal */}
-      {modalOpen && (
+      {mounted && modalOpen && createPortal(
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm">
           <div className="bg-[#1e1f22] border border-[#333] rounded-lg shadow-2xl w-[400px] max-w-[90vw] overflow-hidden flex flex-col pointer-events-auto">
             <div className="flex items-center justify-between p-4 border-b border-[#333]">
@@ -297,7 +303,8 @@ function TemplateEditor_Inner() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </Layout>
   );

@@ -14,25 +14,74 @@ export class OrderRepository {
     ) && error?.code !== 'PGRST204';
   }
 
-  static async listOrders(): Promise<DatabaseOrder[]> {
-    const { data, error } = await supabase
+  static async listOrders(options: { page?: number; limit?: number; search?: string; status?: string } = {}): Promise<{ data: DatabaseOrder[]; total: number }> {
+    const page = Number(options.page) || 1;
+    const limit = Number(options.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    let query = supabase
       .from(ORDERS_TABLE)
-      .select('*')
-      .order('order_date', { ascending: false });
+      .select('*', { count: 'exact' });
+
+    if (options.status && options.status !== 'all') {
+      query = query.eq('status', options.status);
+    }
+
+    if (options.search) {
+      const searchPattern = `%${options.search}%`;
+      query = query.or(`customer_name.ilike.${searchPattern},email.ilike.${searchPattern},id.ilike.${searchPattern},product_name.ilike.${searchPattern}`);
+    }
+
+    const { data, error, count } = await query
+      .order('order_date', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) throw error;
-    return data || [];
+    return {
+      data: data || [],
+      total: count || 0
+    };
   }
 
-  static async listUserOrders(userId: string): Promise<DatabaseOrder[]> {
+  static async listUserOrders(userId: string, options: { page?: number; limit?: number; search?: string; status?: string } = {}): Promise<{ data: DatabaseOrder[]; total: number }> {
+    const page = Number(options.page) || 1;
+    const limit = Number(options.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    let query = supabase
+      .from(ORDERS_TABLE)
+      .select('*', { count: 'exact' })
+      .eq('user_id', userId);
+
+    if (options.status && options.status !== 'all') {
+      query = query.eq('status', options.status);
+    }
+
+    if (options.search) {
+      const searchPattern = `%${options.search}%`;
+      query = query.or(`id.ilike.${searchPattern},product_name.ilike.${searchPattern}`);
+    }
+
+    const { data, error, count } = await query
+      .order('order_date', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) throw error;
+    return {
+      data: data || [],
+      total: count || 0
+    };
+  }
+
+  static async getOrderById(id: string): Promise<DatabaseOrder | null> {
     const { data, error } = await supabase
       .from(ORDERS_TABLE)
       .select('*')
-      .eq('user_id', userId)
-      .order('order_date', { ascending: false });
+      .eq('id', id)
+      .maybeSingle();
 
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   static async createOrder(

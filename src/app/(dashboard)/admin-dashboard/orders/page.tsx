@@ -15,6 +15,12 @@ function ManageOrders_Inner() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [totalCount, setTotalCount] = useState(0);
+
   const navigate = useNavigate();
   const { id } = useParams() as { id: string };
 
@@ -27,9 +33,16 @@ function ManageOrders_Inner() {
     const loadOrders = async () => {
       try {
         setLoading(true);
-        const res = await getAdminOrders();
+        const res = await getAdminOrders(
+          hasIdParam 
+            ? {} 
+            : { page: currentPage, limit: 10, search: searchTerm, status: statusFilter }
+        );
         if (!cancelled) {
-          setOrders(res.data);
+          const dataArray = res.data.data || res.data;
+          const totalVal = res.data.total !== undefined ? res.data.total : dataArray.length;
+          setOrders(dataArray);
+          setTotalCount(totalVal);
           setError(null);
         }
       } catch (err: any) {
@@ -46,7 +59,7 @@ function ManageOrders_Inner() {
     };
     loadOrders();
     return () => { cancelled = true; };
-  }, []);
+  }, [currentPage, searchTerm, statusFilter, hasIdParam]);
 
   // Handle order status change in database (includes status & remarks)
   const handleStatusChange = async (orderId: string, newStatus: string, remarks: string) => {
@@ -90,6 +103,13 @@ function ManageOrders_Inner() {
               error={error}
               isAdmin={true}
               onView={(order: any) => navigate.push(`/admin-dashboard/orders/${order.id}`)}
+              totalCount={totalCount}
+              currentPage={currentPage}
+              searchTerm={searchTerm}
+              statusFilter={statusFilter}
+              onPageChange={(page) => setCurrentPage(page)}
+              onSearchChange={(search) => { setSearchTerm(search); setCurrentPage(1); }}
+              onStatusFilterChange={(status) => { setStatusFilter(status); setCurrentPage(1); }}
             />
           </>
         ) : (

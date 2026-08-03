@@ -6,7 +6,13 @@ import { createOrderSchema } from '@/validators/orders/order.validator';
 export async function GET(request: Request) {
   try {
     const user = await authenticateRequest(request);
-    const result = await OrderService.listUserOrders(user.id, user.email);
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '10', 10);
+    const search = searchParams.get('search') || '';
+    const status = searchParams.get('status') || '';
+
+    const result = await OrderService.listUserOrders(user.id, user.email, { page, limit, search, status });
     return NextResponse.json(result, { status: 200 });
   } catch (err: any) {
     console.error('List Orders API Error:', err);

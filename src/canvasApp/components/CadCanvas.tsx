@@ -1,11 +1,11 @@
 "use client";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 import { Stage, Layer, Line, Rect, Circle, Arc, Text, Transformer, Group } from "react-konva";
 import { useCadStore } from '@/store/useCadStore';
 import { Tool, ShapeType } from '@/types';
 import { snapToGrid, getDistance, getAngle, getOrthoPoint, SNAP_THRESHOLD, formatMeasurement } from '@/utils/math';
 import { AnnotationRenderer } from './annotations/AnnotationRenderer';
-const GRID_SIZE = 50;
+const GRID_SIZE = 20;
 function CadCanvas() {
   const containerRef = useRef<any>(null);
   const stageRef = useRef<any>(null);
@@ -281,10 +281,10 @@ function CadCanvas() {
         return closestSnap;
       }
       if (gridEnabled) {
-        return snapToGrid(finalPos, 1);
+        return snapToGrid(finalPos, GRID_SIZE);
       }
     } else if (gridEnabled) {
-      return snapToGrid(finalPos, 1);
+      return snapToGrid(finalPos, GRID_SIZE);
     }
     return finalPos;
   };
@@ -1015,11 +1015,15 @@ function CadCanvas() {
       </React.Fragment>;
     });
   };
+  const memoizedObjects = useMemo(() => {
+    return renderObjects();
+  }, [objects, selectedIds, canvasTheme, activeTool, stageScale, layers, editingAnnotationId, showMeasurements, activeColor]);
+
   const isLight = canvasTheme === "light";
   const gridStyle = gridEnabled ? {
     backgroundImage: isLight
-      ? "radial-gradient(circle, rgba(15,23,42,0.12) 1px, transparent 1px)"
-      : "radial-gradient(circle, rgba(255,255,255,0.15) 1px, transparent 1px)",
+      ? "radial-gradient(circle at 0px 0px, rgba(15,23,42,0.3) 1.5px, transparent 1.5px)"
+      : "radial-gradient(circle at 0px 0px, rgba(255,255,255,0.35) 1.5px, transparent 1.5px)",
     backgroundSize: `${20 * stageScale}px ${20 * stageScale}px`,
     backgroundPosition: `${stagePosition.x}px ${stagePosition.y}px`,
     backgroundColor: isLight ? "#ffffff" : "#1a1b1e"
@@ -1174,7 +1178,7 @@ function CadCanvas() {
         {renderGrid()}
       </Layer>
       <Layer>
-        {renderObjects()}
+        {memoizedObjects}
         {activeTool === Tool.SELECT && selectedIds.length > 0 && <Transformer
           ref={trRef}
           enabledAnchors={[]}

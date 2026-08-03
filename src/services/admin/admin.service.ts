@@ -11,8 +11,8 @@ export class AdminError extends Error {
 }
 
 export class AdminService {
-  static async listUsers(): Promise<PublicUser[]> {
-    return AdminRepository.listUsers();
+  static async listUsers(options: { page?: number; limit?: number; search?: string } = {}): Promise<{ data: PublicUser[]; total: number }> {
+    return AdminRepository.listUsers(options);
   }
 
   static async createManagedUser(input: CreateUserInput): Promise<PublicUser> {

@@ -26,9 +26,14 @@ export const toPublicTemplate = (row: DatabaseTemplate | null): PublicTemplate |
 };
 
 export class TemplateService {
-  static async listTemplates(): Promise<PublicTemplate[]> {
-    const templates = await TemplateRepository.listTemplates();
-    return templates.map((row) => toPublicTemplate(row)).filter(Boolean) as PublicTemplate[];
+  static async listTemplates(options: { page?: number; limit?: number; search?: string; status?: string; category?: string } = {}): Promise<{ data: PublicTemplate[]; total: number; categories: string[] }> {
+    const result = await TemplateRepository.listTemplates(options);
+    const formatted = result.data.map((row) => toPublicTemplate(row)).filter(Boolean) as PublicTemplate[];
+    return {
+      data: formatted,
+      total: result.total,
+      categories: result.categories
+    };
   }
 
   static async getTemplateById(id: string): Promise<PublicTemplate> {

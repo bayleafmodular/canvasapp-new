@@ -49,27 +49,35 @@ function ManageUsers_Inner() {
   const permissions = getPermissions();
   const canCreate = role === 'admin' || permissions['users.create'];
   const canEdit = role === 'admin' || permissions['users.edit'];
-  const filteredUsers = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
-    if (!query) return users;
+  const [totalCount, setTotalCount] = useState(0);
 
-    return users.filter((user) =>
-      [user.name, user.email, user.role].some((value) => value?.toLowerCase().includes(query))
-    );
-  }, [users, searchTerm]);
-
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage) || 1;
-  const paginatedUsers = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredUsers.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredUsers, currentPage]);
+  const totalPages = Math.ceil(totalCount / itemsPerPage) || 1;
 
   useEffect(() => {
-    getAdminUsers()
-      .then((res) => setUsers(res.data))
-      .catch(() => toast.error('Failed to load users'))
-      .finally(() => setLoading(false));
-  }, []);
+    let cancelled = false;
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        const res = await getAdminUsers({ page: currentPage, limit: 10, search: searchTerm });
+        if (!cancelled) {
+          const dataArray = res.data.data || res.data;
+          const totalVal = res.data.total !== undefined ? res.data.total : dataArray.length;
+          setUsers(dataArray);
+          setTotalCount(totalVal);
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          toast.error('Failed to load users');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+    fetchUsers();
+    return () => { cancelled = true; };
+  }, [currentPage, searchTerm]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -222,75 +230,73 @@ function ManageUsers_Inner() {
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-10 text-center text-gray-400">No users found</td>
-                  </tr>
-                ) : paginatedUsers.length === 0 ? (
-                  <tr>
                     <td colSpan={6} className="px-6 py-10 text-center text-gray-400">No matching users found</td>
                   </tr>
-                ) : paginatedUsers.map((u) => (
-                  <tr key={u._id} className="hover:bg-gray-50 transition-colors">
-
-                    {/* Name + avatar */}
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-bold shrink-0">
-                          {u.name?.charAt(0).toUpperCase()}
+                ) : (
+                  users.map((u) => (
+                    <tr key={u._id} className="hover:bg-gray-50 transition-colors">
+  
+                      {/* Name + avatar */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-bold shrink-0">
+                            {u.name?.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="font-medium text-gray-700">{u.name}</span>
                         </div>
-                        <span className="font-medium text-gray-700">{u.name}</span>
-                      </div>
-                    </td>
-
-                    {/* Email */}
-                    <td className="px-6 py-4 text-gray-500">{u.email}</td>
-
-                    {/* Role selector — clean pill style */}
-                    <td className="px-6 py-4">
-                      <div className="relative inline-block">
-                        <select
-                          value={u.role}
-                          disabled={!canEdit || updating === u._id || u._id === loggedInId}
-                          onChange={(e) => handleRoleChange(u._id, e.target.value)}
-                          title={u._id === loggedInId ? 'You cannot change your own role' : ''}
-                          className={`appearance-none pl-3 pr-7 py-1 rounded-full text-xs font-semibold cursor-pointer
-                            border border-transparent focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-300
-                            disabled:opacity-50 disabled:cursor-not-allowed transition-colors
-                            ${roleBadge[u.role]}`}
+                      </td>
+  
+                      {/* Email */}
+                      <td className="px-6 py-4 text-gray-500">{u.email}</td>
+  
+                      {/* Role selector — clean pill style */}
+                      <td className="px-6 py-4">
+                        <div className="relative inline-block">
+                          <select
+                            value={u.role}
+                            disabled={!canEdit || updating === u._id || u._id === loggedInId}
+                            onChange={(e) => handleRoleChange(u._id, e.target.value)}
+                            title={u._id === loggedInId ? 'You cannot change your own role' : ''}
+                            className={`appearance-none pl-3 pr-7 py-1 rounded-full text-xs font-semibold cursor-pointer
+                              border border-transparent focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-300
+                              disabled:opacity-50 disabled:cursor-not-allowed transition-colors
+                              ${roleBadge[u.role]}`}
+                          >
+                            <option value="user">User</option>
+                            <option value="staff">Staff</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-current opacity-60 text-[10px]">▾</span>
+                        </div>
+                      </td>
+  
+                      {/* Verified */}
+                      <td className="px-6 py-4">
+                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${u.isVerified ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                          {u.isVerified ? 'Verified' : 'Pending'}
+                        </span>
+                      </td>
+  
+                      {/* Joined */}
+                      <td className="px-6 py-4 text-gray-500">
+                        {new Date(u.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </td>
+  
+                      {/* Delete */}
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => setConfirmUser(u)}
+                          disabled={!canEdit}
+                          className="p-2 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                          title="Delete user"
                         >
-                          <option value="user">User</option>
-                          <option value="staff">Staff</option>
-                          <option value="admin">Admin</option>
-                        </select>
-                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-current opacity-60 text-[10px]">▾</span>
-                      </div>
-                    </td>
-
-                    {/* Verified */}
-                    <td className="px-6 py-4">
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${u.isVerified ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-                        {u.isVerified ? 'Verified' : 'Pending'}
-                      </span>
-                    </td>
-
-                    {/* Joined */}
-                    <td className="px-6 py-4 text-gray-500">
-                      {new Date(u.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                    </td>
-
-                    {/* Delete */}
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={() => setConfirmUser(u)}
-                        disabled={!canEdit}
-                        className="p-2 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
-                        title="Delete user"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </td>
-
-                  </tr>
-                ))}
+                          <Trash2 size={15} />
+                        </button>
+                      </td>
+  
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -298,7 +304,7 @@ function ManageUsers_Inner() {
           {totalPages > 1 && (
             <div className="bg-white px-6 py-4 border-t border-gray-50 flex items-center justify-between">
               <span className="text-xs text-gray-400">
-                Showing Page <span className="font-bold text-gray-700">{currentPage}</span> of <span className="font-bold text-gray-700">{totalPages}</span> ({filteredUsers.length} total users)
+                Showing Page <span className="font-bold text-gray-700">{currentPage}</span> of <span className="font-bold text-gray-700">{totalPages}</span> ({totalCount} total users)
               </span>
               <div className="flex gap-2">
                 <button

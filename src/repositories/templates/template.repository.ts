@@ -4,15 +4,55 @@ import { DatabaseTemplate } from '@/types/template';
 const TEMPLATES_TABLE = 'templates';
 
 export class TemplateRepository {
-  static async listTemplates(): Promise<DatabaseTemplate[]> {
-    const { data, error } = await supabase
+  static async listTemplates(options: { page?: number; limit?: number; search?: string; status?: string; category?: string } = {}): Promise<{ data: DatabaseTemplate[]; total: number; categories: string[] }> {
+    let query = supabase
       .from(TEMPLATES_TABLE)
-      .select('id,name,category,description,status,objects,layers,created_at,updated_at')
-      .neq('status', 'deleted')
-      .order('updated_at', { ascending: false });
+      .select('id,name,category,description,status,objects,layers,created_at,updated_at', { count: 'exact' })
+      .neq('status', 'deleted');
 
+    if (options.status && options.status !== 'all') {
+      query = query.eq('status', options.status);
+    }
+
+    if (options.category && options.category !== 'all') {
+      if (options.category.toLowerCase() === 'uncategorized') {
+        query = query.is('category', null);
+      } else {
+        query = query.eq('category', options.category);
+      }
+    }
+
+    if (options.search) {
+      const searchPattern = `%${options.search}%`;
+      query = query.or(`name.ilike.${searchPattern},description.ilike.${searchPattern}`);
+    }
+
+    query = query.order('updated_at', { ascending: false });
+
+    if (options.page !== undefined || options.limit !== undefined) {
+      const page = Number(options.page) || 1;
+      const limit = Number(options.limit) || 10;
+      const offset = (page - 1) * limit;
+      query = query.range(offset, offset + limit - 1);
+    }
+
+    const { data, error, count } = await query;
     if (error) throw error;
-    return data || [];
+
+    // Fetch all categories for filtering dropdown
+    const { data: catData, error: catError } = await supabase
+      .from(TEMPLATES_TABLE)
+      .select('category')
+      .neq('status', 'deleted');
+    if (catError) throw catError;
+
+    const categories = Array.from(new Set((catData || []).map(c => c.category || 'Uncategorized')));
+
+    return {
+      data: data || [],
+      total: count || 0,
+      categories
+    };
   }
 
   static async getTemplateById(id: string): Promise<DatabaseTemplate | null> {

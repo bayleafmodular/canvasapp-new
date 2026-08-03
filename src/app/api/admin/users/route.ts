@@ -9,7 +9,12 @@ export async function GET(request: Request) {
     checkRole(user, 'admin', 'staff');
     checkPermission(user, 'users.show');
 
-    const result = await AdminService.listUsers();
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '10', 10);
+    const search = searchParams.get('search') || '';
+
+    const result = await AdminService.listUsers({ page, limit, search });
     return NextResponse.json(result, { status: 200 });
   } catch (err: any) {
     console.error('List Users API Error:', err);

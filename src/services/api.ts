@@ -28,7 +28,7 @@ export const updateTwoFactor = (enabled: boolean) => api.patch('/auth/2fa', { en
 export const verifyOtp = (data: any) => api.post('/auth/verify-otp', data);
 export const resendOtp = (data: any) => api.post('/auth/resend-otp', data);
 export const getAdminStats = () => api.get('/admin/dashboard-stats');
-export const getAdminUsers = () => api.get('/admin/users');
+export const getAdminUsers = (params?: any) => api.get('/admin/users', { params });
 export const createAdminUser = (data: any) => api.post('/admin/users', data);
 export const updateUserRole = (id: string, role: string) => api.patch(`/admin/users/${id}/role`, { role });
 export const deleteUser = (id: string) => api.delete(`/admin/users/${id}`);
@@ -45,12 +45,14 @@ export const updatePricingSettings = (data: any) => api.patch('/pricing', data);
 
 // Orders APIs
 export const createOrder = (data: any) => api.post('/orders', data);
-export const getAdminOrders = () => api.get('/admin/orders');
+export const getAdminOrders = (params?: any) => api.get('/admin/orders', { params });
+export const getAdminOrderById = (id: string) => api.get(`/admin/orders/${id}`);
 export const updateAdminOrderStatus = (id: string, status: string, remarks: string) => api.patch(`/admin/orders/${id}`, { status, remarks });
-export const getUserOrders = () => api.get('/orders');
+export const getUserOrders = (params?: any) => api.get('/orders', { params });
+export const getUserOrderById = (id: string) => api.get(`/orders/${id}`);
 
 // Templates APIs
-export const getAdminTemplates = () => api.get('/templates');
+export const getAdminTemplates = (params?: any) => api.get('/templates', { params });
 export const getAdminTemplateById = (id: string) => api.get(`/templates/${id}`);
 export const createAdminTemplate = (data: any) => api.post('/templates', data);
 export const updateAdminTemplate = (id: string, data: any) => api.patch(`/templates/${id}`, data);

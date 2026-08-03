@@ -5,14 +5,29 @@ import { toPublicUser, normalizePermissions } from '@/repositories/auth.reposito
 const USERS_TABLE = 'app_users';
 
 export class AdminRepository {
-  static async listUsers(): Promise<PublicUser[]> {
-    const { data, error } = await supabase
+  static async listUsers(options: { page?: number; limit?: number; search?: string } = {}): Promise<{ data: PublicUser[]; total: number }> {
+    const page = Number(options.page) || 1;
+    const limit = Number(options.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    let query = supabase
       .from(USERS_TABLE)
-      .select('id,name,email,role,permissions,is_verified,created_at,updated_at')
-      .order('created_at', { ascending: false });
+      .select('id,name,email,role,permissions,is_verified,created_at,updated_at', { count: 'exact' });
+
+    if (options.search) {
+      const searchPattern = `%${options.search}%`;
+      query = query.or(`name.ilike.${searchPattern},email.ilike.${searchPattern},role.ilike.${searchPattern}`);
+    }
+
+    const { data, error, count } = await query
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) throw error;
-    return (data || []).map((row) => toPublicUser(row)).filter(Boolean) as PublicUser[];
+    return {
+      data: (data || []).map((row) => toPublicUser(row)).filter(Boolean) as PublicUser[],
+      total: count || 0
+    };
   }
 
   static async findUserById(id: string): Promise<DatabaseUser | null> {

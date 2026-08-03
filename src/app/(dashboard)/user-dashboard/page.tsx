@@ -12,6 +12,12 @@ function UserDashboard_Inner() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [totalCount, setTotalCount] = useState(0);
+
   const navigate = useNavigate();
   const { id } = useParams() as { id: string };
 
@@ -23,9 +29,16 @@ function UserDashboard_Inner() {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const res = await getUserOrders();
+        const res = await getUserOrders(
+          hasIdParam 
+            ? {} 
+            : { page: currentPage, limit: 10, search: searchTerm, status: statusFilter }
+        );
         if (!cancelled) {
-          setOrders(res.data);
+          const dataArray = res.data.data || res.data;
+          const totalVal = res.data.total !== undefined ? res.data.total : dataArray.length;
+          setOrders(dataArray);
+          setTotalCount(totalVal);
           setError(null);
         }
       } catch (err: any) {
@@ -42,7 +55,7 @@ function UserDashboard_Inner() {
 
     fetchOrders();
     return () => { cancelled = true; };
-  }, []);
+  }, [currentPage, searchTerm, statusFilter, hasIdParam]);
 
   return (
     <Layout>
@@ -64,6 +77,13 @@ function UserDashboard_Inner() {
               error={error}
               isAdmin={false}
               onView={(order: any) => navigate.push(`/user-dashboard/orders/${order.id}`)}
+              totalCount={totalCount}
+              currentPage={currentPage}
+              searchTerm={searchTerm}
+              statusFilter={statusFilter}
+              onPageChange={(page) => setCurrentPage(page)}
+              onSearchChange={(search) => { setSearchTerm(search); setCurrentPage(1); }}
+              onStatusFilterChange={(status) => { setStatusFilter(status); setCurrentPage(1); }}
             />
           </>
         ) : (
