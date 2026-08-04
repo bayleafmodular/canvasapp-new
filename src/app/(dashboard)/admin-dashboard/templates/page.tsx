@@ -121,7 +121,7 @@ function ManageTemplates_Inner() {
           <div className="relative flex-1 w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
-              type="text"
+              type="search"
               placeholder="Search templates..."
               value={searchQuery}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
@@ -169,14 +169,31 @@ function ManageTemplates_Inner() {
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-8 text-center text-gray-400">Loading templates...</td>
+                    <td colSpan={7} className="px-6 py-24 text-center text-gray-400 font-medium animate-pulse">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                        Loading templates...
+                      </div>
+                    </td>
                   </tr>
                 ) : filteredTemplates.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-8 text-center text-gray-400 font-medium">
-                      {searchQuery || (categoryFilter && categoryFilter !== 'all') || (statusFilter && statusFilter !== 'all')
-                        ? "No templates found matching your criteria."
-                        : "No templates found."}
+                    <td colSpan={7} className="px-6 py-12">
+                      <div className="flex flex-col items-center justify-center text-center py-4">
+                        <div className="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mb-3">
+                          <LayoutTemplate size={22} />
+                        </div>
+                        <h3 className="text-sm font-bold text-gray-700">
+                          {searchQuery || (categoryFilter && categoryFilter !== 'all') || (statusFilter && statusFilter !== 'all')
+                            ? "No matching templates found"
+                            : "No templates found"}
+                        </h3>
+                        <p className="text-xs text-gray-400 mt-1 max-w-xs">
+                          {searchQuery || (categoryFilter && categoryFilter !== 'all') || (statusFilter && statusFilter !== 'all')
+                            ? "Try adjusting your search query, category, or status filter."
+                            : "Create a new CAD drawing template using the button above."}
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 ) : (

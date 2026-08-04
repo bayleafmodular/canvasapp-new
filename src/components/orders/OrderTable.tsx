@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Search, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Eye, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
 import OrderStatusBadge from './OrderStatusBadge';
 
 export default function OrderTable({ 
@@ -106,7 +106,7 @@ export default function OrderTable({
             <tbody className="divide-y divide-gray-50 text-gray-600">
               {loading ? (
                 <tr>
-                  <td colSpan={isAdmin ? 7 : 6} className="px-6 py-10 text-center text-gray-400 font-medium animate-pulse">
+                  <td colSpan={isAdmin ? 7 : 6} className="px-6 py-24 text-center text-gray-400 font-medium animate-pulse">
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
                       Loading orders...
@@ -121,10 +121,22 @@ export default function OrderTable({
                 </tr>
               ) : orders.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdmin ? 7 : 6} className="px-6 py-10 text-center text-gray-400 font-medium">
-                    {searchTerm || (statusFilter && statusFilter !== 'all')
-                      ? "No orders matched your search filters."
-                      : "No orders found."}
+                  <td colSpan={isAdmin ? 7 : 6} className="px-6 py-12">
+                    <div className="flex flex-col items-center justify-center text-center py-4">
+                      <div className="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mb-3">
+                        <ClipboardList size={22} />
+                      </div>
+                      <h3 className="text-sm font-bold text-gray-700">
+                        {searchTerm || (statusFilter && statusFilter !== 'all')
+                          ? "No matching orders found"
+                          : "No orders found"}
+                      </h3>
+                      <p className="text-xs text-gray-400 mt-1 max-w-xs">
+                        {searchTerm || (statusFilter && statusFilter !== 'all')
+                          ? "Try adjusting your search queries or status filters."
+                          : "Get started by drawing a layout on the CAD canvas."}
+                      </p>
+                    </div>
                   </td>
                 </tr>
               ) : (

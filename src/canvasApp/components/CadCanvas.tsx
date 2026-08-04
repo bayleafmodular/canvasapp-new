@@ -10,6 +10,8 @@ function CadCanvas() {
   const containerRef = useRef<any>(null);
   const stageRef = useRef<any>(null);
   const trRef = useRef<any>(null);
+  const lastTouchDistRef = useRef<number | null>(null);
+  const lastTouchCenterRef = useRef<{ x: number; y: number } | null>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [editingAnnotationId, setEditingAnnotationId] = useState<string | null>(null);
   const {
@@ -632,6 +634,82 @@ function CadCanvas() {
       });
     }
   };
+
+  const handleTouchStart = (e: any) => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const touches = e.evt.touches;
+    if (touches && touches.length === 2) {
+      e.evt.preventDefault();
+      
+      const t1 = { x: touches[0].clientX, y: touches[0].clientY };
+      const t2 = { x: touches[1].clientX, y: touches[1].clientY };
+      
+      lastTouchDistRef.current = getDistance(t1, t2);
+      lastTouchCenterRef.current = {
+        x: (t1.x + t2.x) / 2,
+        y: (t1.y + t2.y) / 2,
+      };
+    }
+  };
+
+  const handleTouchMove = (e: any) => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const touches = e.evt.touches;
+    if (touches && touches.length === 2 && lastTouchDistRef.current && lastTouchCenterRef.current) {
+      e.evt.preventDefault();
+      
+      const t1 = { x: touches[0].clientX, y: touches[0].clientY };
+      const t2 = { x: touches[1].clientX, y: touches[1].clientY };
+      
+      const dist = getDistance(t1, t2);
+      const center = {
+        x: (t1.x + t2.x) / 2,
+        y: (t1.y + t2.y) / 2,
+      };
+      
+      const factor = dist / lastTouchDistRef.current;
+      const oldScale = stageScale;
+      let newScale = oldScale * factor;
+      
+      newScale = Math.max(0.1, Math.min(20, newScale));
+      
+      const stageBox = stage.container().getBoundingClientRect();
+      const relativeCenter = {
+        x: center.x - stageBox.left,
+        y: center.y - stageBox.top,
+      };
+      
+      const mousePointTo = {
+        x: (relativeCenter.x - stagePosition.x) / oldScale,
+        y: (relativeCenter.y - stagePosition.y) / oldScale,
+      };
+      
+      const newPos = {
+        x: relativeCenter.x - mousePointTo.x * newScale,
+        y: relativeCenter.y - mousePointTo.y * newScale,
+      };
+      
+      const dx = center.x - lastTouchCenterRef.current.x;
+      const dy = center.y - lastTouchCenterRef.current.y;
+      
+      setStageScale(newScale);
+      setStagePosition({
+        x: newPos.x + dx,
+        y: newPos.y + dy,
+      });
+      
+      lastTouchDistRef.current = dist;
+      lastTouchCenterRef.current = center;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    lastTouchDistRef.current = null;
+    lastTouchCenterRef.current = null;
+  };
+
   const renderGrid = () => {
     return null;
   };
@@ -1037,7 +1115,7 @@ function CadCanvas() {
     className={`w-full h-full outline-none relative transition-colors duration-200 ${
       isLight ? "bg-white text-slate-800" : "bg-[#1a1b1e] text-[#d1d1d1]"
     } ${activeTool === Tool.HAND ? "cursor-grab active:cursor-grabbing" : "cursor-crosshair"}`}
-    style={gridStyle}
+    style={{ ...gridStyle, touchAction: "none" }}
     tabIndex={0}
     onKeyDown={(e) => {
       const target = e.target as HTMLElement | null;
@@ -1162,6 +1240,9 @@ function CadCanvas() {
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       onDblClick={handleDblClick}
       draggable={activeTool === Tool.HAND}
       onDragEnd={(e) => {

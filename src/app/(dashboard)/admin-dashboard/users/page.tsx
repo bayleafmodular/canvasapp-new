@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Layout from '@/components/layout/Layout';
 import { createAdminUser, getAdminUsers, updateUserRole, deleteUser } from '@/services/api';
-import { Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trash2, Search, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 
 const roleBadge: Record<string, string> = {
@@ -226,11 +226,30 @@ function ManageUsers_Inner() {
               <tbody className="divide-y divide-gray-50">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-10 text-center text-gray-400">Loading...</td>
+                    <td colSpan={6} className="px-6 py-24 text-center text-gray-400 font-medium animate-pulse">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                        Loading users...
+                      </div>
+                    </td>
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-10 text-center text-gray-400">No matching users found</td>
+                    <td colSpan={6} className="px-6 py-12">
+                      <div className="flex flex-col items-center justify-center text-center py-4">
+                        <div className="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mb-3">
+                          <Users size={22} />
+                        </div>
+                        <h3 className="text-sm font-bold text-gray-700">
+                          {searchTerm ? "No matching users found" : "No users found"}
+                        </h3>
+                        <p className="text-xs text-gray-400 mt-1 max-w-xs">
+                          {searchTerm 
+                            ? "Try searching for another user name, email, or role." 
+                            : "Registered customer accounts will appear here."}
+                        </p>
+                      </div>
+                    </td>
                   </tr>
                 ) : (
                   users.map((u) => (

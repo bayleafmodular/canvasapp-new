@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Layout from '@/components/layout/Layout';
 import { createStaffUser, getStaffUsers, updateStaffUser } from '@/services/api';
-import { Search } from 'lucide-react';
+import { Search, UserCog } from 'lucide-react';
 
 const permissionGroups = [
   {
@@ -280,11 +280,38 @@ function ManageStaff_Inner() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {loading ? (
-                  <tr><td colSpan={4} className="px-6 py-10 text-center text-gray-400">Loading...</td></tr>
+                  <tr>
+                    <td colSpan={4} className="px-6 py-24 text-center text-gray-400 font-medium animate-pulse">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                        Loading staff...
+                      </div>
+                    </td>
+                  </tr>
                 ) : staff.length === 0 ? (
-                  <tr><td colSpan={4} className="px-6 py-10 text-center text-gray-400">No staff users found</td></tr>
+                  <tr>
+                    <td colSpan={4} className="px-6 py-12">
+                      <div className="flex flex-col items-center justify-center text-center py-4">
+                        <div className="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mb-3">
+                          <UserCog size={22} />
+                        </div>
+                        <h3 className="text-sm font-bold text-gray-700">No staff users registered</h3>
+                        <p className="text-xs text-gray-400 mt-1 max-w-xs">Create a new staff user profile using the form above.</p>
+                      </div>
+                    </td>
+                  </tr>
                 ) : filteredStaff.length === 0 ? (
-                  <tr><td colSpan={4} className="px-6 py-10 text-center text-gray-400">No matching staff users found</td></tr>
+                  <tr>
+                    <td colSpan={4} className="px-6 py-12">
+                      <div className="flex flex-col items-center justify-center text-center py-4">
+                        <div className="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mb-3">
+                          <UserCog size={22} />
+                        </div>
+                        <h3 className="text-sm font-bold text-gray-700">No matching staff found</h3>
+                        <p className="text-xs text-gray-400 mt-1 max-w-xs">Try searching for another staff member name or email.</p>
+                      </div>
+                    </td>
+                  </tr>
                 ) : filteredStaff.map((user) => {
                   const allowed = Object.entries(user.permissions || {}).filter(([, value]) => value).length;
                   return (
