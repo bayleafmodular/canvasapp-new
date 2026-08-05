@@ -641,10 +641,10 @@ function CadCanvas() {
     const touches = e.evt.touches;
     if (touches && touches.length === 2) {
       e.evt.preventDefault();
-      
+
       const t1 = { x: touches[0].clientX, y: touches[0].clientY };
       const t2 = { x: touches[1].clientX, y: touches[1].clientY };
-      
+
       lastTouchDistRef.current = getDistance(t1, t2);
       lastTouchCenterRef.current = {
         x: (t1.x + t2.x) / 2,
@@ -659,47 +659,47 @@ function CadCanvas() {
     const touches = e.evt.touches;
     if (touches && touches.length === 2 && lastTouchDistRef.current && lastTouchCenterRef.current) {
       e.evt.preventDefault();
-      
+
       const t1 = { x: touches[0].clientX, y: touches[0].clientY };
       const t2 = { x: touches[1].clientX, y: touches[1].clientY };
-      
+
       const dist = getDistance(t1, t2);
       const center = {
         x: (t1.x + t2.x) / 2,
         y: (t1.y + t2.y) / 2,
       };
-      
+
       const factor = dist / lastTouchDistRef.current;
       const oldScale = stageScale;
       let newScale = oldScale * factor;
-      
+
       newScale = Math.max(0.1, Math.min(20, newScale));
-      
+
       const stageBox = stage.container().getBoundingClientRect();
       const relativeCenter = {
         x: center.x - stageBox.left,
         y: center.y - stageBox.top,
       };
-      
+
       const mousePointTo = {
         x: (relativeCenter.x - stagePosition.x) / oldScale,
         y: (relativeCenter.y - stagePosition.y) / oldScale,
       };
-      
+
       const newPos = {
         x: relativeCenter.x - mousePointTo.x * newScale,
         y: relativeCenter.y - mousePointTo.y * newScale,
       };
-      
+
       const dx = center.x - lastTouchCenterRef.current.x;
       const dy = center.y - lastTouchCenterRef.current.y;
-      
+
       setStageScale(newScale);
       setStagePosition({
         x: newPos.x + dx,
         y: newPos.y + dy,
       });
-      
+
       lastTouchDistRef.current = dist;
       lastTouchCenterRef.current = center;
     }
@@ -1098,11 +1098,22 @@ function CadCanvas() {
   }, [objects, selectedIds, canvasTheme, activeTool, stageScale, layers, editingAnnotationId, showMeasurements, activeColor]);
 
   const isLight = canvasTheme === "light";
+
+  // Calculate dynamic grid divisions to prevent visual packing & render latency when zoomed out
+  let visibleGridSize = 20;
+  if (stageScale < 0.15) {
+    visibleGridSize = 160;
+  } else if (stageScale < 0.3) {
+    visibleGridSize = 80;
+  } else if (stageScale < 0.6) {
+    visibleGridSize = 40;
+  }
+
   const gridStyle = gridEnabled ? {
     backgroundImage: isLight
       ? "radial-gradient(circle at 0px 0px, rgba(15,23,42,0.3) 1.5px, transparent 1.5px)"
       : "radial-gradient(circle at 0px 0px, rgba(255,255,255,0.35) 1.5px, transparent 1.5px)",
-    backgroundSize: `${20 * stageScale}px ${20 * stageScale}px`,
+    backgroundSize: `${visibleGridSize * stageScale}px ${visibleGridSize * stageScale}px`,
     backgroundPosition: `${stagePosition.x}px ${stagePosition.y}px`,
     backgroundColor: isLight ? "#ffffff" : "#1a1b1e"
   } : {
@@ -1112,9 +1123,8 @@ function CadCanvas() {
 
   return <div
     ref={containerRef}
-    className={`w-full h-full outline-none relative transition-colors duration-200 ${
-      isLight ? "bg-white text-slate-800" : "bg-[#1a1b1e] text-[#d1d1d1]"
-    } ${activeTool === Tool.HAND ? "cursor-grab active:cursor-grabbing" : "cursor-crosshair"}`}
+    className={`w-full h-full outline-none relative transition-colors duration-200 ${isLight ? "bg-white text-slate-800" : "bg-[#1a1b1e] text-[#d1d1d1]"
+      } ${activeTool === Tool.HAND ? "cursor-grab active:cursor-grabbing" : "cursor-crosshair"}`}
     style={{ ...gridStyle, touchAction: "none" }}
     tabIndex={0}
     onKeyDown={(e) => {
