@@ -6,6 +6,7 @@ import { X, Search, ChevronDown, ChevronRight, LayoutTemplate, Layers, Shapes } 
 import { cn }  from '@/lib/utils';
 import { ShapeType }  from '@/types';
 import TemplatePreview  from '@/components/TemplatePreview';
+import ConfirmModal from '@/components/ConfirmModal';
 
 const calculateBounds = (objects: any) => {
   if (!objects || objects.length === 0) return null;
@@ -47,6 +48,8 @@ export function TemplateDrawer() {
   const [expandedCategories, setExpandedCategories] = useState<any>({});
   const [templatesList, setTemplatesList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedTemplateToLoad, setSelectedTemplateToLoad] = useState<any>(null);
 
   useEffect(() => {
     if (isTemplateDrawerOpen) {
@@ -63,11 +66,8 @@ export function TemplateDrawer() {
     }
   }, [isTemplateDrawerOpen]);
 
-  const handleLoadTemplate = (template: any) => {
-    const { objects, setStageScale, setStagePosition } = useCadStore.getState();
-    if (objects.length > 0 || useCadStore.getState().panels.length > 1) {
-      if (!confirm("Loading a template will clear your current drawing. Continue?")) return;
-    }
+  const executeLoadTemplate = (template: any) => {
+    const { setStageScale, setStagePosition } = useCadStore.getState();
     
     const isMultiPanelTemplate = Array.isArray(template.objects) && 
                                  template.objects.length > 0 &&
@@ -116,11 +116,10 @@ export function TemplateDrawer() {
     const bounds = calculateBounds(fitObjects);
     if (bounds) {
       const padding = 50;
-      // Approximate viewport width (subtracting left/right sidebars & drawer width)
       const viewportW = window.innerWidth - (56 + 256 + 320); 
       const viewportH = window.innerHeight - 80;
       
-      const vw = Math.max(viewportW, 400); // minimum fallback
+      const vw = Math.max(viewportW, 400);
       const vh = Math.max(viewportH, 400);
 
       const scaleX = (vw - padding * 2) / (bounds.width || 1);
@@ -140,6 +139,16 @@ export function TemplateDrawer() {
     }
 
     setTemplateDrawerOpen(false);
+  };
+
+  const handleLoadTemplate = (template: any) => {
+    const { objects } = useCadStore.getState();
+    if (objects.length > 0 || useCadStore.getState().panels.length > 1) {
+      setSelectedTemplateToLoad(template);
+      setConfirmOpen(true);
+    } else {
+      executeLoadTemplate(template);
+    }
   };
 
   const toggleCategory = (category: any) => {
@@ -313,6 +322,24 @@ export function TemplateDrawer() {
         )}
       </div>
       </div>
+      <ConfirmModal
+        isOpen={confirmOpen}
+        title="Load Template Confirmation"
+        message="Loading a template will clear your current drawing. Are you sure you want to continue?"
+        confirmText="Continue"
+        cancelText="Cancel"
+        onConfirm={() => {
+          if (selectedTemplateToLoad) {
+            executeLoadTemplate(selectedTemplateToLoad);
+          }
+          setConfirmOpen(false);
+          setSelectedTemplateToLoad(null);
+        }}
+        onCancel={() => {
+          setConfirmOpen(false);
+          setSelectedTemplateToLoad(null);
+        }}
+      />
     </>
   );
 }

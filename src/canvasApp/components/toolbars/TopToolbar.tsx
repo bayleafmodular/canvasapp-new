@@ -1,11 +1,13 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
+import toast from "react-hot-toast";
 import { useCadStore }  from '@/store/useCadStore';
 import { Undo2, Redo2, Grid, Magnet, Ruler, AlignEndHorizontal, Maximize2, Upload, Image, FileJson, FileEdit, CloudUpload, CloudDownload, ChevronDown, Save, FolderOpen, Trash2, X, FilePlus, Calculator, Sun, Moon } from "lucide-react";
 import { cn, downloadFile }  from '@/lib/utils';
 import { createDrawing, deleteDrawing, getDrawing, getDrawings, getPricingSettings, createOrder, updateDrawing }  from '@/services/api';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
+import ConfirmModal from '@/components/ConfirmModal';
 import Drawing from "dxf-writer";
 import { ShapeType }  from '@/types';
 import { calculateDrawingPrice }  from '@/utils/pricing';
@@ -67,6 +69,19 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
   const [customerPhone, setCustomerPhone] = useState(() => getCachedUser().phone || "");
   const [customerAddress, setCustomerAddress] = useState("");
   const [placingOrder, setPlacingOrder] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {}
+  });
   useEffect(() => {
     if (browserModalOpen !== "load") return;
 
@@ -78,7 +93,7 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
         if (!cancelled) setBrowserProjects(data);
       } catch (e: any) {
         if (!cancelled) {
-          alert(e.response?.data?.message || "Failed to load cloud drawings.");
+          toast.error(e.response?.data?.message || "Failed to load cloud drawings.");
           setBrowserProjects([]);
         }
       } finally {
@@ -109,14 +124,27 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
   }, []);
   const handleNewDrawing = () => {
     if (objects.length > 0) {
-      if (!confirm("Are you sure you want to create a new drawing? Any unsaved changes will be lost.")) return;
-    }
-    clearDrawing();
-  };
-  const handleClearCanvas = () => {
-    if (confirm("Are you sure you want to clear the entire canvas? This will delete all drawn shapes.")) {
+      setConfirmConfig({
+        isOpen: true,
+        title: "Create New Drawing",
+        message: "Are you sure you want to create a new drawing? Any unsaved changes will be lost.",
+        onConfirm: () => {
+          clearDrawing();
+        }
+      });
+    } else {
       clearDrawing();
     }
+  };
+  const handleClearCanvas = () => {
+    setConfirmConfig({
+      isOpen: true,
+      title: "Clear Entire Canvas",
+      message: "Are you sure you want to clear the entire canvas? This will delete all drawn shapes.",
+      onConfirm: () => {
+        clearDrawing();
+      }
+    });
   };
   const handleExportPng = () => {
     window.dispatchEvent(new CustomEvent("export-png"));
@@ -204,7 +232,7 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
         : objects;
       setPriceResult(calculateDrawingPrice(allObjects, pricing));
     } catch (e: any) {
-      alert(e.response?.data?.message || "Failed to calculate drawing price.");
+      toast.error(e.response?.data?.message || "Failed to calculate drawing price.");
       setPriceModalOpen(false);
     } finally {
       setPriceLoading(false);
@@ -213,7 +241,7 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
   const handlePlaceOrder = async (e: any) => {
     e.preventDefault();
     if (!customerName.trim() || !customerEmail.trim() || !customerAddress.trim()) {
-      alert("Name, Email, and Address are required!");
+      setCheckoutError("Name, Email, and Address are required!");
       return;
     }
     setPlacingOrder(true);
@@ -234,13 +262,13 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
         drawingData: panels,
       });
 
-      alert("Order placed successfully! Admins will review it shortly.");
+      toast.success("Order placed successfully! Admins will review it shortly.");
       setPriceModalOpen(false);
       setCheckoutStep(false);
       setCustomerAddress("");
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.message || "Failed to place order.");
+      toast.error(err.response?.data?.message || "Failed to place order.");
     } finally {
       setPlacingOrder(false);
     }
@@ -300,7 +328,7 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
         }
       } catch (err) {
         console.error(err);
-        alert("Invalid project file.");
+        toast.error("Invalid project file.");
       }
     };
     reader.readAsText(file);
@@ -308,7 +336,7 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
   };
   const handleSaveBrowser = async () => {
     if (!saveName.trim()) {
-      alert("Please enter a name for the drawing.");
+      setSaveError("Please enter a name for the drawing.");
       return;
     }
     const data = {
@@ -325,7 +353,7 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
         data
       });
       setBrowserProjects((projects) => [savedDrawing, ...projects]);
-      alert("Drawing saved to cloud successfully!");
+      toast.success("Drawing saved to cloud successfully!");
       useCadStore.setState({
         loadedDrawingId: savedDrawing.id,
         loadedDrawingName: savedDrawing.name
@@ -333,7 +361,7 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
       setBrowserModalOpen(null);
       setSaveName("");
     } catch (e: any) {
-      alert(e.response?.data?.message || "Failed to save drawing to cloud.");
+      toast.error(e.response?.data?.message || "Failed to save drawing to cloud.");
     } finally {
       setBrowserLoading(false);
     }
@@ -353,9 +381,9 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
         name: loadedDrawingName,
         data
       });
-      alert("Drawing updated successfully!");
+      toast.success("Drawing updated successfully!");
     } catch (e: any) {
-      alert(e.response?.data?.message || "Failed to save drawing changes.");
+      toast.error(e.response?.data?.message || "Failed to save drawing changes.");
     } finally {
       setBrowserLoading(false);
     }
@@ -400,7 +428,7 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
         setBrowserModalOpen(null);
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to load drawing.");
+      toast.error(err.response?.data?.message || "Failed to load drawing.");
     } finally {
       setBrowserLoading(false);
     }
@@ -412,8 +440,9 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
       await deleteDrawing(projectToDelete.id);
       setBrowserProjects((projects) => projects.filter((p) => p.id !== projectToDelete.id));
       setProjectToDelete(null);
+      toast.success("Drawing deleted successfully!");
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to delete drawing.");
+      toast.error(err.response?.data?.message || "Failed to delete drawing.");
     } finally {
       setBrowserLoading(false);
     }
@@ -717,15 +746,25 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
               <input
                 type="text"
                 value={saveName}
-                onChange={(e) => setSaveName(e.target.value)}
+                onChange={(e) => {
+                  setSaveName(e.target.value);
+                  if (saveError) setSaveError("");
+                }}
                 placeholder="E.g. Ground Floor Plan"
-                className="w-full bg-[#1e1f22] border border-[#444] rounded px-3 py-2 text-white outline-none focus:border-[#4a90e2]"
+                className={`w-full bg-[#1e1f22] border rounded px-3 py-2 text-white outline-none transition-colors ${
+                  saveError ? "border-red-500 focus:border-red-500" : "border-[#444] focus:border-[#4a90e2]"
+                }`}
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleSaveBrowser();
                 }}
                 disabled={browserLoading}
               />
+              {saveError && (
+                <p className="text-red-500 text-xs mt-1.5 font-semibold">
+                  {saveError}
+                </p>
+              )}
             </div> : <div className="flex flex-col gap-2">
               {browserLoading ? <p className="text-[#666] text-center text-sm py-4">Loading saved drawings...</p> : browserProjects.length === 0 ? <p className="text-[#666] text-center text-sm py-4">No saved drawings found.</p> : browserProjects.map((proj) => <div key={proj.id} className="flex flex-row items-center justify-between bg-[#1e1f22] border border-[#333] hover:border-[#444] rounded p-3 transition-colors">
                 <div>
@@ -790,15 +829,25 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
           {checkoutStep ? (
             <form onSubmit={handlePlaceOrder} className="flex flex-col flex-1">
               <div className="p-4 bg-[#141517] space-y-4">
+                {checkoutError && (
+                  <div className="p-3 bg-red-950/40 border border-red-500/30 text-red-400 text-xs rounded font-semibold">
+                    {checkoutError}
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs text-[#aaa] mb-1 font-semibold uppercase tracking-wider">Customer Name</label>
                   <input
                     type="text"
                     required
                     value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
+                    onChange={(e) => {
+                      setCustomerName(e.target.value);
+                      if (checkoutError) setCheckoutError("");
+                    }}
                     placeholder="Enter your name"
-                    className="w-full bg-[#1e1f22] border border-[#444] rounded px-3 py-2 text-white outline-none focus:border-[#4a90e2]"
+                    className={`w-full bg-[#1e1f22] border rounded px-3 py-2 text-white outline-none transition-colors ${
+                      checkoutError && !customerName.trim() ? "border-red-500" : "border-[#444] focus:border-[#4a90e2]"
+                    }`}
                     disabled={placingOrder}
                   />
                 </div>
@@ -808,9 +857,14 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
                     type="email"
                     required
                     value={customerEmail}
-                    onChange={(e) => setCustomerEmail(e.target.value)}
+                    onChange={(e) => {
+                      setCustomerEmail(e.target.value);
+                      if (checkoutError) setCheckoutError("");
+                    }}
                     placeholder="Enter your email"
-                    className="w-full bg-[#1e1f22] border border-[#444] rounded px-3 py-2 text-white outline-none focus:border-[#4a90e2]"
+                    className={`w-full bg-[#1e1f22] border rounded px-3 py-2 text-white outline-none transition-colors ${
+                      checkoutError && !customerEmail.trim() ? "border-red-500" : "border-[#444] focus:border-[#4a90e2]"
+                    }`}
                     disabled={placingOrder}
                   />
                 </div>
@@ -831,9 +885,14 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
                     required
                     rows={3}
                     value={customerAddress}
-                    onChange={(e) => setCustomerAddress(e.target.value)}
+                    onChange={(e) => {
+                      setCustomerAddress(e.target.value);
+                      if (checkoutError) setCheckoutError("");
+                    }}
                     placeholder="Enter complete billing/delivery address"
-                    className="w-full bg-[#1e1f22] border border-[#444] rounded px-3 py-2 text-white outline-none focus:border-[#4a90e2] resize-none"
+                    className={`w-full bg-[#1e1f22] border rounded px-3 py-2 text-white outline-none resize-none transition-colors ${
+                      checkoutError && !customerAddress.trim() ? "border-red-500" : "border-[#444] focus:border-[#4a90e2]"
+                    }`}
                     disabled={placingOrder}
                   />
                 </div>
@@ -910,6 +969,18 @@ function TopToolbar({ isTemplateMode, onBack }: { isTemplateMode?: boolean; onBa
       onConfirm={executeDeleteBrowser}
       onCancel={() => setProjectToDelete(null)}
       isDeleting={browserLoading}
+    />
+    <ConfirmModal
+      isOpen={confirmConfig.isOpen}
+      title={confirmConfig.title}
+      message={confirmConfig.message}
+      onConfirm={() => {
+        confirmConfig.onConfirm();
+        setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
+      }}
+      onCancel={() => {
+        setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
+      }}
     />
   </>;
 }

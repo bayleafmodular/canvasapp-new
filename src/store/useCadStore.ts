@@ -87,6 +87,7 @@ interface CadState {
   panels: CadPanel[];
   activePanelId: string;
   canvasTheme: 'dark' | 'light';
+  isLeftExpanded: boolean;
 
   copyObjects: () => void;
   pasteObjects: () => void;
@@ -120,6 +121,7 @@ interface CadState {
   commitHistory: () => void;
   clearDrawing: () => void;
   setTemplateDrawerOpen: (isOpen: boolean) => void;
+  toggleLeftSidebar: () => void;
   zoomToFit: () => void;
 }
 
@@ -157,6 +159,7 @@ const useCadStore = create<CadState>()(
       ],
       activePanelId: DEFAULT_PANEL_ID,
       canvasTheme: 'dark',
+      isLeftExpanded: true,
 
       copyObjects: () => set((state) => {
         const selectedObjects = state.objects.filter((obj) => state.selectedIds.includes(obj.id));
@@ -469,7 +472,8 @@ const useCadStore = create<CadState>()(
           };
         });
       },
-      setTemplateDrawerOpen: (isOpen) => set({ isTemplateDrawerOpen: isOpen })
+      setTemplateDrawerOpen: (isOpen) => set({ isTemplateDrawerOpen: isOpen }),
+      toggleLeftSidebar: () => set((state) => ({ isLeftExpanded: !state.isLeftExpanded }))
     }),
     {
       name: "precision-cad-storage",
@@ -488,7 +492,8 @@ const useCadStore = create<CadState>()(
         loadedDrawingId: state.loadedDrawingId,
         loadedDrawingName: state.loadedDrawingName,
         panels: state.panels,
-        activePanelId: state.activePanelId
+        activePanelId: state.activePanelId,
+        isLeftExpanded: state.isLeftExpanded
       } as any),
       onRehydrateStorage: () => (state, error) => {
         if (state && !error) {

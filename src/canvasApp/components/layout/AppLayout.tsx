@@ -1,9 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useCadStore } from "@/store/useCadStore";
 
 function AppLayout({ children, left, right, top, bottom }: { children: React.ReactNode; left?: React.ReactNode; right?: React.ReactNode; top?: React.ReactNode; bottom?: React.ReactNode }) {
   const [rightOpen, setRightOpen] = useState(true);
+  const { isLeftExpanded } = useCadStore();
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.innerWidth < 768) {
@@ -19,7 +21,9 @@ function AppLayout({ children, left, right, top, bottom }: { children: React.Rea
       
       <div className="flex flex-1 overflow-hidden relative">
         {/* Left Toolbar */}
-        <div className="w-14 h-full min-h-0 bg-[#25262b] border-r border-[#333] flex flex-col items-center py-4 shrink-0 z-10">
+        <div className={`h-full min-h-0 bg-[#25262b] border-r border-[#333] flex flex-col items-center py-4 shrink-0 z-10 transition-all duration-300 ease-in-out ${
+          isLeftExpanded ? "w-56" : "w-14"
+        }`}>
           {left}
         </div>
         
